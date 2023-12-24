@@ -2,3 +2,5 @@
 */__pycache__/
 .ipynb_checkpoints
 __pycache__
+output/arcface.onnx
+output/ghost.onnx
