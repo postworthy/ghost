@@ -82,7 +82,7 @@ We are very troubled by the fact that GHOST can be used for unethical and disrep
 ## Training
   
 We also provide the training code for face swap model as follows:
-  1. Download [VGGFace2 Dataset](https://www.robots.ox.ac.uk/~vgg/data/vgg_face/).
+  1. Download [VGGFace2 Dataset](https://www.kaggle.com/datasets/yuzhangzhang/vggface2).
   2. Crop and align faces with out detection model.
   ```bash
   python preprocess_vgg.py --path_to_dataset {PATH_TO_DATASET} --save_path {SAVE_PATH}
