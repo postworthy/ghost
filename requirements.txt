@@ -8,7 +8,7 @@ onnxruntime-gpu
 onnx
 mxnet-cu101mkl
 scikit-image
-insightface==0.2.1
+insightface
 requests==2.25.1
 kornia==0.5.4
 dill
