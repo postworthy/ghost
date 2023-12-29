@@ -6,7 +6,7 @@ import time
 import cv2
 from PIL import Image
 import os
-
+import numpy as np
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn.functional as F
@@ -326,7 +326,7 @@ def train_one_epoch_new(G: 'generator model',
             if args.scheduler:
                 print(f'scheduler_G lr: {scheduler_G.get_last_lr()}')
 
-        if iteration % 5000 == 0:
+        if iteration % 2500 == 0:
             os.makedirs(f'./output/saved_models_{args.run_name}/', exist_ok=True)
             os.makedirs(f'./output/current_models_{args.run_name}/', exist_ok=True)
             torch.save(G.state_dict(), f'./output/saved_models_{args.run_name}/G_latest.pth')
@@ -410,7 +410,7 @@ if __name__ == "__main__":
     # training params you may want to change
     parser.add_argument('--backbone', default='unet', const='unet', nargs='?', choices=['unet', 'linknet', 'resnet'], help='Backbone for attribute encoder')
     parser.add_argument('--num_blocks', default=2, type=int, help='Numbers of AddBlocks at AddResblock')
-    parser.add_argument('--same_person', default=0.2, type=float, help='Probability of using same person identity during training')
+    parser.add_argument('--same_person', default=0.05, type=float, help='Probability of using same person identity during training')
     parser.add_argument('--same_identity', default=True, type=bool, help='Using simswap approach, when source_id = target_id. Only possible with vgg=True')
     parser.add_argument('--diff_eq_same', default=False, type=bool, help='Don\'t use info about where is defferent identities')
     parser.add_argument('--pretrained', default=True, type=bool, help='If using the pretrained weights for training or not')
