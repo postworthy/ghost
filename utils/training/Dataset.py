@@ -129,3 +129,48 @@ class FaceEmbedVGG2(TensorDataset):
 
     def __len__(self):
         return self.N
+    
+class CelebADataset(TensorDataset):
+    def __init__(self, data_path):
+        
+        # Load all images from the specified path
+        self.images_list = glob.glob(f'{data_path}/*.*g')
+        
+        self.N = len(self.images_list)
+        
+        # Define transforms
+        self.transforms_arcface = transforms.Compose([
+            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.Resize((224, 224)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+        
+        self.transforms_base = transforms.Compose([
+            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+
+    def __getitem__(self, item):
+        image_path = self.images_list[item]
+
+        Xs = cv2.imread(image_path)[:, :, ::-1]
+        if random.randint(0, 1) == 1:
+            Xs = cv2.flip(Xs, 1)
+        Xs = Image.fromarray(Xs)
+    
+        image_path = random.choice(self.images_list)
+        Xt = cv2.imread(image_path)[:, :, ::-1]
+        if random.randint(0, 1) == 1:
+            Xt = cv2.flip(Xt, 1)
+        Xt = Image.fromarray(Xt)
+
+        
+
+            
+        return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_base(Xt), 0
+
+    def __len__(self):
+        return self.N
