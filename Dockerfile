@@ -44,8 +44,11 @@ RUN pip3 install kornia==0.5.4
 RUN pip3 install dill
 RUN pip3 install wandb
 
-ADD ./export-onnx.py /app/ghost/
-ADD . .
+#ADD ./export-onnx.py /app/ghost/
+ADD ./models/ ./models/
+ADD ./network/ ./network/
+ADD ./utils/ ./utils/
+ADD *.py .
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 
 CMD ["bash"]
