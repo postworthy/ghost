@@ -321,6 +321,9 @@ def train_one_epoch_new(G: 'generator model',
 
         if iteration % 10 == 0:
             print(f'epoch: {epoch}    {iteration} / {len(dataloader)}')
+            print(f'netarc_embeds_loss: {35*netarc_embeds_loss.item()}')
+            print(f'lmks_loss: {20*lmks_loss.item()}')
+            print(f'teacher_loss: {2*teacher_loss.item()}')
             print(f'total_loss: {total_loss.item()} batch_time: {batch_time}s')
             
             if args.scheduler:
