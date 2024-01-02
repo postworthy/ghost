@@ -21,7 +21,7 @@ def export_ghost_onnx():
     # main model for generation
     torch_model = AEI_Net('unet', num_blocks=2, c_id=512)
     torch_model.eval()
-    torch_model.load_state_dict(torch.load('weights/G_unet_2blocks.pth', map_location=torch.device('cpu')))
+    torch_model.load_state_dict(torch.load('output/saved_models_test_with_pretrained_16/G_latest.pth', map_location=torch.device('cpu')))
     torch_model = torch_model.cuda()
     torch_model = torch_model
 
@@ -78,5 +78,5 @@ def export_arcface_onnx():
                     
 
 if __name__ == "__main__":
-    #export_ghost_onnx()
-    export_arcface_onnx()
+    export_ghost_onnx()
+    #export_arcface_onnx()
