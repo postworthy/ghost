@@ -17,7 +17,7 @@ from torch.cuda.amp import GradScaler, autocast
 # custom imports
 
 from network.AEI_Net import *
-from utils.training.Dataset import FaceEmbedVGG2, FaceEmbed
+from utils.training.Dataset import FaceEmbedVGG2, FaceEmbed, CelebADataset
 from utils.training.image_processing import make_image_list, get_faceswap
 from arcface_model.iresnet import iresnet100
 
@@ -365,7 +365,9 @@ def train(args, device):
         except FileNotFoundError as e:
             print("Not found pretrained weights. Continue without any pretrained weights.")
     
-    if args.vgg:
+    if args.celeb:
+        dataset = CelebADataset(args.dataset_path)        
+    elif args.vgg:
         dataset = FaceEmbedVGG2(args.dataset_path, same_prob=args.same_person, same_identity=args.same_identity)
     else:
         dataset = FaceEmbed([args.dataset_path], same_prob=args.same_person)
@@ -401,6 +403,7 @@ if __name__ == "__main__":
     parser.add_argument('--dataset_path', default='/VggFace2-crop/', help='Path to the dataset. If not VGG2 dataset is used, param --vgg should be set False')
     parser.add_argument('--G_path', default='./saved_models/G.pth', help='Path to pretrained weights for G. Only used if pretrained=True')
     parser.add_argument('--vgg', default=True, type=bool, help='When using VGG2 dataset (or any other dataset with several photos for one identity)')
+    parser.add_argument('--celeb', default=False, type=bool, help='When using VGG2 dataset (or any other dataset with several photos for one identity)')
     # weights for loss
     parser.add_argument('--weight_adv', default=1, type=float, help='Adversarial Loss weight')
     parser.add_argument('--weight_attr', default=10, type=float, help='Attributes weight')
