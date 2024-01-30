@@ -89,14 +89,14 @@ def train_one_epoch(G: 'generator model',
         high_quality_results_lmks = []
         can_run = False
         with torch.no_grad():
-            embed_old_way = netArc(F.interpolate(_Xs_orig_on_device, [112, 112], mode='bilinear', align_corners=False))
+            embed_old_way = netArc(F.interpolate(_Xs_orig_on_device, [112, 112], mode='area'))
             netarc_embeds = []
             for i, _  in enumerate(_Xs_orig):
                 blob_128 = None
                 blob_256 = None
                 embed = None
                 try:
-                    img = F.interpolate(_Xs_orig[i:i+1], size=(128, 128), mode='bilinear', align_corners=False)
+                    img = F.interpolate(_Xs_orig[i:i+1], size=(128, 128), mode='area')
                     img = img.detach().cpu().numpy()
                     img = img.transpose((0,2,3,1))[0]
                     img = np.clip(255 * img, 0, 255).astype(np.uint8)[:,:,::-1]
@@ -112,7 +112,7 @@ def train_one_epoch(G: 'generator model',
                     continue
 
                 try:
-                    img = F.interpolate(_Xt_raw[i:i+1], size=(128, 128), mode='bilinear', align_corners=False)
+                    img = F.interpolate(_Xt_raw[i:i+1], size=(128, 128), mode='area')
                     img = img.detach().cpu().numpy()
                     img = img.transpose((0,2,3,1))[0]
                     img = np.clip(255 * img, 0, 255).astype(np.uint8)[:,:,::-1]
@@ -150,7 +150,7 @@ def train_one_epoch(G: 'generator model',
                     high_quality_results_lmks.append(high_quality_lmks_tensor)
 
                     high_quality_pred_tensor = torch.from_numpy(high_quality_pred).to(device)
-                    HQ_Resized = F.interpolate(high_quality_pred_tensor, [112, 112], mode='bilinear', align_corners=False)
+                    HQ_Resized = F.interpolate(high_quality_pred_tensor, [112, 112], mode='area')
                     PRED = netArc(HQ_Resized)
                     high_quality_results_netarc.append(PRED)
                     high_quality_results.append(HQ_Resized)
@@ -208,18 +208,18 @@ def train_one_epoch(G: 'generator model',
         high_quality_results_lmks_combined = torch.cat(high_quality_results_lmks, dim=0)
 
 
-        #Y_resized = F.interpolate(Xt, size=(128, 128), mode='bilinear', align_corners=False)
-        Y_resized = F.interpolate(Y, [112, 112], mode='bilinear', align_corners=False)
+        #Y_resized = F.interpolate(Xt, size=(128, 128), mode='area')
+        Y_resized = F.interpolate(Y, [112, 112], mode='area')
         ZY = netArc(Y_resized)
 
-        Y_tiny = F.interpolate(Y, [8, 8], mode='bilinear', align_corners=False)
-        Xt_tiny = F.interpolate(Xt, [8, 8], mode='bilinear', align_corners=False)
+        Y_tiny = F.interpolate(Y, [8, 8], mode='area')
+        Xt_tiny = F.interpolate(Xt, [8, 8], mode='area')
         tiny_original_loss = torch.norm((Xt_tiny) - (Y_tiny), p=2)
 
         try:
             y_lmks = []
             #landmark_2d_106 need to be calculated at 128x128, only because that is how they were calculated with the teacher model
-            Y_resized_128 = F.interpolate(Y, [128, 128], mode='bilinear', align_corners=False)
+            Y_resized_128 = F.interpolate(Y, [128, 128], mode='area')
             for i, image in enumerate(Y_resized_128):
                 img_fake = Y_resized_128.detach().cpu().numpy().transpose((0,2,3,1))[i]
                 bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
@@ -242,7 +242,7 @@ def train_one_epoch(G: 'generator model',
         #teacher_loss = l2_loss(soft_masks*Y_resized, soft_masks*high_quality_results_combined)
 
 
-        Xt_resized = F.interpolate(Xt, [112, 112], mode='bilinear', align_corners=False)
+        Xt_resized = F.interpolate(Xt, [112, 112], mode='area')
         if args.teacher_inner_crop == True:
             #Crops the inner 56x56 which is the part of the face we care most about
             crop_start = 28
@@ -352,7 +352,7 @@ def train_one_epoch(G: 'generator model',
 
         if D:
             high_quality_results_combined = torch.cat(high_quality_results, dim=0)
-            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bilinear', align_corners=False)
+            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
 
             diff_person = torch.ones_like(same_person)
             lossD = compute_discriminator_loss(D, high_quality_results_resized, Xs, diff_person)
@@ -376,7 +376,7 @@ def train_one_epoch(G: 'generator model',
         batch_time = time.time() - start_time
 
         if iteration % args.show_step == 0:
-            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bilinear', align_corners=False)
+            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
             images = [Xs, Xt, high_quality_results_resized, Y]
             image = make_image_list(images, normalize=False)
             os.makedirs('./output/images/', exist_ok=True)
