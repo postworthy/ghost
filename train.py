@@ -351,11 +351,12 @@ def train_one_epoch(G: 'generator model',
 
 
         if D:
-            high_quality_results_combined = torch.cat(high_quality_results, dim=0)
-            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
+            #high_quality_results_combined = torch.cat(high_quality_results, dim=0)
+            #high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
 
             diff_person = torch.ones_like(same_person)
-            lossD = compute_discriminator_loss(D, high_quality_results_resized, Xs, diff_person)
+            #lossD = compute_discriminator_loss(D, high_quality_results_resized, Xs, diff_person)
+            lossD = compute_discriminator_loss(D, Y, Xs, diff_person)
 
             #universal_multiplier = 1.0
             lossD_multiplier = 50.0
