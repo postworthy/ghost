@@ -36,7 +36,6 @@ class AADLayer(nn.Module):
 
         out = (torch.ones_like(M).to(M.device) - M) * A + M * I
         return out
-
     
 class AddBlocksSequential(nn.Sequential):
     def forward(self, *inputs):

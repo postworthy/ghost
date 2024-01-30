@@ -13,7 +13,7 @@ transformer_Arcface = transforms.Compose([
     ])
 
 
-def torch2image(torch_image: torch.tensor) -> np.ndarray:
+def torch2image(torch_image: torch.tensor, normalize=True) -> np.ndarray:
     batch = False
     
     if torch_image.dim() == 4:
@@ -26,7 +26,10 @@ def torch2image(torch_image: torch.tensor) -> np.ndarray:
     mean = torch.tensor([0.5, 0.5, 0.5]).unsqueeze(1).unsqueeze(2).to(device)
     std = torch.tensor([0.5, 0.5, 0.5]).unsqueeze(1).unsqueeze(2).to(device)
     
-    denorm_image = (std * torch_image) + mean
+    if normalize:
+        denorm_image = (std * torch_image) + mean
+    else:
+        denorm_image = torch_image
     
     if batch:
         denorm_image = denorm_image.permute(0, 2, 3, 1)
@@ -42,11 +45,11 @@ def torch2image(torch_image: torch.tensor) -> np.ndarray:
         return np_image
 
 
-def make_image_list(images) -> np.ndarray:    
+def make_image_list(images, normalize=True) -> np.ndarray:    
     np_images = []
     
     for torch_image in images:
-        np_img = torch2image(torch_image)
+        np_img = torch2image(torch_image, normalize=True)
         np_images.append(np_img)
     
     return np.concatenate(np_images, axis=0)

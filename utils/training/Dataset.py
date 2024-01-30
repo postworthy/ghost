@@ -8,6 +8,7 @@ import os
 import cv2
 import tqdm
 import sys
+import torch 
 sys.path.append('..')
 # from utils.cap_aug import CAP_AUG
     
@@ -41,6 +42,11 @@ class FaceEmbed(TensorDataset):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
+        self.transforms_tensor = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+        ])
+
     def __getitem__(self, item):
         idx = 0
         while item >= self.N[idx]:
@@ -62,7 +68,7 @@ class FaceEmbed(TensorDataset):
             Xt = Xs.copy()
             same_person = 1
             
-        return self.transforms_arcface(Xs), self.transforms_base(Xs),  self.transforms_base(Xt), same_person
+        return self.transforms_arcface(Xs), self.transforms_base(Xs),  self.transforms_tensor(Xt), self.transforms_base(Xt), same_person
 
     def __len__(self):
         return sum(self.N)
@@ -101,6 +107,11 @@ class FaceEmbedVGG2(TensorDataset):
             transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
+        self.transforms_tensor = transforms.Compose([
+            transforms.Resize((256, 256)),
+            transforms.ToTensor(),
+        ])
+
     def __getitem__(self, item):
             
         image_path = self.images_list[item]
@@ -125,33 +136,55 @@ class FaceEmbedVGG2(TensorDataset):
                 Xt = Xs.copy()
             same_person = 1
             
-        return self.transforms_arcface(Xs), self.transforms_base(Xs),  self.transforms_base(Xt), same_person
+        return self.transforms_arcface(Xs), self.transforms_base(Xs),  self.transforms_tensor(Xt), self.transforms_base(Xt), same_person
 
     def __len__(self):
         return self.N
     
 class CelebADataset(TensorDataset):
-    def __init__(self, data_path):
+    def __init__(self, data_path, normalize=False):
         
         # Load all images from the specified path
         self.images_list = glob.glob(f'{data_path}/*.*g')
+        random.shuffle(self.images_list)
         
         self.N = len(self.images_list)
         
-        # Define transforms
-        self.transforms_arcface = transforms.Compose([
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
-            transforms.Resize((224, 224)),
-            transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-        ])
-        
-        self.transforms_base = transforms.Compose([
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+        self.transforms_tensor = transforms.Compose([
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
+
+        if not normalize:
+            # Define transforms
+            self.transforms_arcface = transforms.Compose([
+                #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+            
+            self.transforms_base = transforms.Compose([
+                #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+                transforms.Resize((256, 256)),
+                transforms.ToTensor(),
+                #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+        else:
+            # Define transforms
+            self.transforms_arcface = transforms.Compose([
+                transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+                transforms.Resize((224, 224)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
+            
+            self.transforms_base = transforms.Compose([
+                transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+                transforms.Resize((256, 256)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            ])
 
     def __getitem__(self, item):
         image_path = self.images_list[item]
@@ -170,7 +203,7 @@ class CelebADataset(TensorDataset):
         
 
             
-        return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_base(Xt), 0
+        return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_tensor(Xt), self.transforms_base(Xt), 0
 
     def __len__(self):
         return self.N

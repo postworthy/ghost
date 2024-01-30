@@ -1,0 +1,125 @@
+
+## TO TRAIN USE THIS
+#python3 train.py --run_name test_with_pretrained_3 --show_step 20 --pretrained True --G_path ./weights/G_unet_2blocks.pth --D_path ./weights/D_unet_2blocks.pth --verbose_output True
+#python3 train.py --run_name test_with_pretrained_4 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_3/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_5 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_3/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_6 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_5/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_7 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_5/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_8 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_7/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_9 --show_step 20
+#python3 train.py --run_name test_with_pretrained_10 --show_step 20
+#python3 train.py --run_name test_with_pretrained_11 --show_step 20
+#python3 train.py --run_name test_with_pretrained_12 --show_step 20
+#python3 train.py --run_name test_with_pretrained_13 --show_step 20
+#python3 train.py --run_name test_with_pretrained_14 --show_step 20
+#python3 train.py --run_name test_with_pretrained_15 --show_step 20 --pretrained True --G_path ./output/saved_models_test_with_pretrained_14/G_latest.pth --D_path ./weights/D_unet_2blocks.pth
+#python3 train.py --run_name test_with_pretrained_16 --show_step 20 --batch_size 25
+
+#python3 train.py --run_name test_with_pretrained_17 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_test_with_pretrained_16/G_latest.pth
+#python3 train.py --run_name test_with_pretrained_17 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_test_with_pretrained_16/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+#python3 train.py --run_name test_with_pretrained_17 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/current_models_test_with_pretrained_16/G_20_000000.pth --celeb True --dataset_path /img_align_celeba_crop
+
+#python3 train.py --run_name test_with_pretrained_17 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_test_with_pretrained_16/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+#python3 train.py --run_name test_with_pretrained_18 --show_step 20 --batch_size 16 --pretrained True --G_path ./output/saved_models_test_with_pretrained_17/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+
+#python3 train.py --run_name test_with_pretrained_19 --show_step 20 --batch_size 16 --pretrained True --G_path ./output/saved_models_test_with_pretrained_18/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+#python3 train.py --run_name test_with_pretrained_20 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_test_with_pretrained_18/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+#python3 train.py --run_name test_with_pretrained_21 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_test_with_pretrained_18/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+
+#python3 train.py --run_name test_with_pretrained_22 --show_step 20 --batch_size 8 --celeb True --dataset_path /sdxl_turbo_faces
+$python3 train.py --run_name test_with_pretrained_23 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_22/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+#python3 train.py --run_name test_with_pretrained_24 --show_step 20 --batch_size 4  --pretrained True --G_path ./output/saved_models_test_with_pretrained_23/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+
+#python3 train.py --run_name test_with_pretrained_25 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_24/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+#python3 train.py --run_name test_with_pretrained_26 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_25/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+
+#python3 train.py --run_name test_with_pretrained_27 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_26/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop
+
+#python3 train.py --run_name test_with_pretrained_28 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_26/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces
+
+#python3 train.py --run_name test_with_pretrained_29 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_28/G_latest.pth --dataset_path /VggFace2-crop
+#python3 train.py --run_name test_with_pretrained_30 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_29/G_latest.pth  --celeb True --dataset_path /sdxl_turbo_faces
+
+#python3 train.py --run_name test_with_pretrained_31 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_30/G_latest.pth  --celeb True --dataset_path /sdxl_turbo_faces
+
+#python3 train.py --run_name test_with_pretrained_32 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_31/G_latest.pth  --celeb True --dataset_path /celeb_turbo --save_interval 500
+
+#python3 train.py --run_name test_with_pretrained_33 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_32/G_latest.pth  --celeb True --dataset_path /celeb_turbo --save_interval 100 --normalize_training_images True
+
+#python3 train.py --run_name test_with_pretrained_34 --show_step 20 --batch_size 6  --pretrained True --G_path ./output/saved_models_test_with_pretrained_33/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 500
+
+#python3 train.py --run_name test_with_pretrained_36 --show_step 20 --batch_size 6  --pretrained True --G_path ./output/saved_models_test_with_pretrained_35/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 500
+#python3 train.py --run_name test_with_pretrained_37 --show_step 20 --batch_size 6  --pretrained True --G_path ./output/saved_models_test_with_pretrained_36/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 100
+
+#python3 train.py --run_name test_with_pretrained_36 --show_step 20 --batch_size 6  --pretrained True --G_path ./output/saved_models_test_with_pretrained_35/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 100
+
+#python3 train.py --run_name test_with_pretrained_37 --show_step 20 --batch_size 12  --pretrained True --G_path ./output/saved_models_test_with_pretrained_36/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 100
+
+#python3 train.py --run_name test_with_pretrained_38 --show_step 20 --batch_size 12  --pretrained True --G_path ./output/saved_models_test_with_pretrained_35/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 200 --teacher_fine_tune True
+
+#python3 train.py --run_name test_with_pretrained_39 --show_step 20 --batch_size 12  --pretrained True --G_path ./output/saved_models_test_with_pretrained_35/G_latest.pth  --celeb True --dataset_path /img_align_celeba_crop  --save_interval 200 --teacher_fine_tune True
+
+#python3 train-self.py --run_name self_taught_1 --show_step 20 --batch_size 8  --teacher_path ./output/saved_models_test_with_pretrained_35/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2500
+
+#python3 train-self.py --run_name self_taught_2 --show_step 20 --batch_size 8 --pretrained True --G_path ./output/saved_models_self_taught_1/G_latest.pth --teacher_path ./output/saved_models_test_with_pretrained_35/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 5000
+
+#python3 train-self.py --run_name self_taught_3 --show_step 100 --batch_size 10 --pretrained True --G_path ./output/saved_models_self_taught_2/G_latest.pth --teacher_path ./output/saved_models_test_with_pretrained_35/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 5000
+
+#python3 train.py --run_name test_with_pretrained_39 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_35/G_latest.pth  --dataset_path /digiface  --save_interval 2500
+
+#python3 train.py --run_name test_with_pretrained_40 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_39/G_latest.pth  --dataset_path /digiface --save_interval 2500 --teacher_fine_tune True
+
+#python3 train.py --run_name test_with_pretrained_40 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_39/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2500
+
+#python3 train.py --run_name test_with_pretrained_42 --show_step 20 --batch_size 16  --pretrained True --G_path ./output/saved_models_test_with_pretrained_41/G_latest.pth --celeb True --dataset_path /frombadges_crop --save_interval 2500 --normalize_training_images True
+
+#python3 train.py --run_name test_with_pretrained_43 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_42/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2500 --normalize_training_images True
+
+#python3 train.py --run_name test_with_pretrained_44 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_43/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2500 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_45 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_44/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 1000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_46 --show_step 20 --batch_size 8  --pretrained True --G_path ./output/saved_models_test_with_pretrained_45/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 1000 --normalize_training_images True
+
+#Ditching all pretraining for #47
+python3 train.py --run_name test_with_pretrained_47 --show_step 20 --batch_size 8 --D_path ./output/saved_models_discriminator_1/D_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_49 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_47/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_47/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 5000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_50 --show_step 20 --batch_size 8 --D_path ./output/saved_models_discriminator_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_45/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 5000 --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_51 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_50/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_50/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 5000 --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_52 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_51/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_51/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 5000 --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_53 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_52/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_52/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 5000 --normalize_training_images True
+
+#Ditching all pretraining for #54
+python3 train.py --run_name test_with_pretrained_54 --show_step 40 --batch_size 4 --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_55 --show_step 40 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_54/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_54/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000 --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_56 --show_step 40 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_55/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_55/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000 --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_57 --show_step 40 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_56/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_56/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_58 --show_step 20 --batch_size 16 --D_path ./output/saved_models_test_with_pretrained_57/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_57/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+python3 train.py --run_name test_with_pretrained_59 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_58/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_58/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+python3 train.py --run_name test_with_pretrained_60 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_59/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_59/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+python3 train.py --run_name test_with_pretrained_61 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_60/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_60/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+python3 train.py --run_name test_with_pretrained_62 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_61/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_61/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+python3 train.py --run_name test_with_pretrained_63 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_62/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_62/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 4000
+
+
+
+
+#########
+#Leverage Pretrained Discriminator
+
+python3 train.py --run_name test_with_pretrained_48 --show_step 20 --batch_size 8 --D_path ./output/saved_models_discriminator_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_45/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 1000 --normalize_training_images True
+
+
+######################################
+#Discriminator Training
+
+python3 train-discriminator.py --run_name discriminator_1 --show_step 2000 --batch_size 16  --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000

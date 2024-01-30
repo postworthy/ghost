@@ -120,22 +120,30 @@ class AADGenerator(nn.Module):
         self.apply(weight_init)
 
     def forward(self, z_attr, z_id):
-        m = self.up1(z_id.reshape(z_id.shape[0], -1, 1, 1))
-        m2 = F.interpolate(self.AADBlk1(m, z_attr[0], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m3 = F.interpolate(self.AADBlk2(m2, z_attr[1], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m4 = F.interpolate(self.AADBlk3(m3, z_attr[2], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m5 = F.interpolate(self.AADBlk4(m4, z_attr[3], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m6 = F.interpolate(self.AADBlk5(m5, z_attr[4], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m7 = F.interpolate(self.AADBlk6(m6, z_attr[5], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        m8 = F.interpolate(self.AADBlk7(m7, z_attr[6], z_id), scale_factor=2, mode='bilinear', align_corners=True)
-        y = self.AADBlk8(m8, z_attr[7], z_id)
-        return torch.tanh(y)
+        m1 = self.up1(z_id.reshape(z_id.shape[0], -1, 1, 1))
+        y1 = self.AADBlk1(m1, z_attr[0], z_id)
+        m2 = F.interpolate(y1, scale_factor=2, mode='bilinear', align_corners=True)
+        y2 = self.AADBlk2(m2, z_attr[1], z_id)
+        m3 = F.interpolate(y2, scale_factor=2, mode='bilinear', align_corners=True)
+        y3 = self.AADBlk3(m3, z_attr[2], z_id)
+        m4 = F.interpolate(y3, scale_factor=2, mode='bilinear', align_corners=True)
+        y4 = self.AADBlk4(m4, z_attr[3], z_id)
+        m5 = F.interpolate(y4, scale_factor=2, mode='bilinear', align_corners=True)
+        y5 = self.AADBlk5(m5, z_attr[4], z_id)
+        m6 = F.interpolate(y5, scale_factor=2, mode='bilinear', align_corners=True)
+        y6 = self.AADBlk6(m6, z_attr[5], z_id)
+        m7 = F.interpolate(y6, scale_factor=2, mode='bilinear', align_corners=True)
+        y7 = self.AADBlk7(m7, z_attr[6], z_id)
+        m8 = F.interpolate(y7, scale_factor=2, mode='bilinear', align_corners=True)
+        y8 = self.AADBlk8(m8, z_attr[7], z_id)
+        return torch.tanh(y8)
 
 
 
 class AEI_Net(nn.Module):
     def __init__(self, backbone, num_blocks=2, c_id=256):
         super(AEI_Net, self).__init__()
+        self.c_id = c_id
         if backbone in ['unet', 'linknet']:
             self.encoder = MLAttrEncoder(backbone)
         elif backbone == 'resnet':
