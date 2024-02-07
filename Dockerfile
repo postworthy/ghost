@@ -48,6 +48,7 @@ RUN pip3 install wandb
 ADD ./models/ ./models/
 ADD ./network/ ./network/
 ADD ./utils/ ./utils/
+ADD ./AdaptiveWingLoss/ ./AdaptiveWingLoss/
 ADD *.py .
 ENV PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python
 

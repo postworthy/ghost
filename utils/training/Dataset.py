@@ -9,6 +9,7 @@ import cv2
 import tqdm
 import sys
 import torch 
+from utils.training.helpers import RandomRGBtoBGR
 sys.path.append('..')
 # from utils.cap_aug import CAP_AUG
     
@@ -92,19 +93,19 @@ class FaceEmbedVGG2(TensorDataset):
         self.N = len(self.images_list)
         
         self.transforms_arcface = transforms.Compose([
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
             transforms.Resize((224, 224)),
             transforms.ToTensor(),
             # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
         
         self.transforms_base = transforms.Compose([
-            transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
             transforms.Resize((256, 256)),
             transforms.ToTensor(),
             # transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
         ])
 
         self.transforms_tensor = transforms.Compose([
@@ -142,10 +143,19 @@ class FaceEmbedVGG2(TensorDataset):
         return self.N
     
 class CelebADataset(TensorDataset):
-    def __init__(self, data_path, normalize=False):
+    def __init__(self, data_path, normalize=False, fine_tune_filter=None):
         
         # Load all images from the specified path
-        self.images_list = glob.glob(f'{data_path}/*.*g')
+        
+        self.normalize = normalize
+
+        if not fine_tune_filter == None:
+            self.images_list = [f for f in glob.glob(f'{data_path}/*.*g') if fine_tune_filter not in f]
+            self.fine_tune_list = [f for f in glob.glob(f'{data_path}/*.*g') if fine_tune_filter in f]
+        else:
+            self.images_list = glob.glob(f'{data_path}/*.*g')
+            self.fine_tune_list = []
+
         random.shuffle(self.images_list)
         
         self.N = len(self.images_list)
@@ -155,55 +165,71 @@ class CelebADataset(TensorDataset):
             transforms.ToTensor(),
         ])
 
-        if not normalize:
-            # Define transforms
-            self.transforms_arcface = transforms.Compose([
-                #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])
-            
-            self.transforms_base = transforms.Compose([
-                #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
-                transforms.Resize((256, 256)),
-                transforms.ToTensor(),
-                #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])
-        else:
-            # Define transforms
-            self.transforms_arcface = transforms.Compose([
-                transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])
-            
-            self.transforms_base = transforms.Compose([
-                transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
-                transforms.Resize((256, 256)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-            ])
+        # Define transforms
+        self.transforms_arcface = transforms.Compose([
+            #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.Resize((224, 224)),
+            RandomRGBtoBGR(),
+            transforms.ToTensor(),
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])            
+        self.transforms_base = transforms.Compose([
+            #transforms.ColorJitter(0.2, 0.2, 0.2, 0.01),
+            transforms.Resize((256, 256)),
+            RandomRGBtoBGR(),
+            transforms.ToTensor(),
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+        self.transforms_arcface_normalize = transforms.Compose([
+            transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
+            #transforms.ColorJitter(1.5, 0.2, 0.2, 0.1),
+            transforms.Resize((224, 224)),
+            RandomRGBtoBGR(),
+            transforms.ToTensor(),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
+        self.transforms_base_normalize = transforms.Compose([
+            transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
+            #transforms.ColorJitter(1.5, 0.2, 0.2, 0.1),
+            transforms.Resize((256, 256)),
+            RandomRGBtoBGR(),
+            transforms.ToTensor(),
+            #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+            #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+        ])
 
     def __getitem__(self, item):
         image_path = self.images_list[item]
-
-        Xs = cv2.imread(image_path)[:, :, ::-1]
-        if random.randint(0, 1) == 1:
-            Xs = cv2.flip(Xs, 1)
-        Xs = Image.fromarray(Xs)
     
+        if len(self.fine_tune_list) == 0:
+            Xs = cv2.imread(image_path)[:, :, ::-1]
+            if random.randint(0, 1) == 1:
+                Xs = cv2.flip(Xs, 1)
+            Xs = Image.fromarray(Xs)
+        else:
+            image_path = random.choice(self.fine_tune_list)
+            Xs = cv2.imread(image_path)[:, :, ::-1]
+            if random.randint(0, 1) == 1:
+                Xs = cv2.flip(Xs, 1)
+            Xs = Image.fromarray(Xs)
+
         image_path = random.choice(self.images_list)
         Xt = cv2.imread(image_path)[:, :, ::-1]
         if random.randint(0, 1) == 1:
             Xt = cv2.flip(Xt, 1)
         Xt = Image.fromarray(Xt)
 
-        
-
-            
-        return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_tensor(Xt), self.transforms_base(Xt), 0
+        if not self.normalize:
+            return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_tensor(Xt), self.transforms_base(Xt), 0
+        else:
+            return (
+                self.transforms_arcface(Xs) if random.randint(0, 1) == 1 else self.transforms_arcface_normalize(Xs), 
+                self.transforms_base(Xs) if random.randint(0, 1) == 1 else self.transforms_base_normalize(Xs), 
+                self.transforms_tensor(Xt), 
+                self.transforms_base(Xt) if random.randint(0, 1) == 1 else self.transforms_base_normalize(Xt), 
+                0
+            )
 
     def __len__(self):
         return self.N

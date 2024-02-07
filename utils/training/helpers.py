@@ -1,6 +1,9 @@
 
+import numpy as np
 import torch
 import torch.nn.functional as F
+import random
+from PIL import Image
 
 def get_hsv(im, eps=1e-7):
     img = im * 0.5 + 0.5
@@ -245,3 +248,22 @@ def structural_loss(batch1, batch2):
     # Compute loss (e.g., MSE)
     loss = F.mse_loss(batch1_gray, batch2_gray)
     return loss
+
+def compute_eye_loss(eye_heatmaps):
+    Xt_heatmap_left, Xt_heatmap_right, Y_heatmap_left, Y_heatmap_right = eye_heatmaps
+    L_l2_eyes = F.mse_loss(Xt_heatmap_left, Y_heatmap_left) + F.mse_loss(Xt_heatmap_right, Y_heatmap_right)
+    
+    return L_l2_eyes
+
+class RandomRGBtoBGR:
+    """Transform to convert image from RGB to BGR with a probability."""
+    def __init__(self, probability=1/25):
+        self.probability = probability
+
+    def __call__(self, img):
+        if random.random() < self.probability:
+            # Convert PIL Image to numpy array, change RGB to BGR, and convert back to PIL Image
+            img = np.array(img)
+            img = img[:, :, ::-1]  # This changes RGB to BGR
+            img = Image.fromarray(img)
+        return img

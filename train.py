@@ -21,6 +21,8 @@ from network.AEI_Net import *
 from network.MultiscaleDiscriminator import *
 from utils.training.Dataset import FaceEmbedVGG2, FaceEmbed, CelebADataset
 from utils.training.image_processing import make_image_list, get_faceswap
+from utils.training.detector import detect_landmarks, paint_eyes
+from AdaptiveWingLoss.core import models
 from arcface_model.iresnet import iresnet100
 
 import insightface
@@ -29,7 +31,7 @@ from onnx import numpy_helper
 import onnx
 from insightface.utils import face_align
 
-from utils.training.helpers import get_hsv, stuck_loss_func, batch_edge_loss, emboss_loss_func, structural_loss
+from utils.training.helpers import get_hsv, stuck_loss_func, batch_edge_loss, emboss_loss_func, structural_loss, compute_eye_loss
 from utils.training.losses import compute_discriminator_loss
 
 print("finished imports")
@@ -56,7 +58,6 @@ scaler = GradScaler()
 border_size = 100
 print("finished globals")
 
-
 def train_one_epoch(G: 'generator model', 
                     opt_G: "generator opt", 
                     scheduler_G: "scheduler G opt",
@@ -64,6 +65,7 @@ def train_one_epoch(G: 'generator model',
                     opt_D: "generator opt", 
                     scheduler_D: "scheduler G opt",
                     netArc: 'ArcFace model',
+                    model_ft: 'Landmark Detector',
                     args: 'Args Namespace',
                     dataloader: torch.utils.data.DataLoader,
                     device: 'torch device',
@@ -153,7 +155,7 @@ def train_one_epoch(G: 'generator model',
                     HQ_Resized = F.interpolate(high_quality_pred_tensor, [112, 112], mode='area')
                     PRED = netArc(HQ_Resized)
                     high_quality_results_netarc.append(PRED)
-                    high_quality_results.append(HQ_Resized)
+                    high_quality_results.append(high_quality_pred_tensor)
                 except Exception as e:
                     if verbose_output:
                         print(f'Teacher Failed: Skipped {str(epoch)}:{iteration:06}:{i}')
@@ -180,6 +182,7 @@ def train_one_epoch(G: 'generator model',
         same_person = torch.cat(same_person, dim=0).to(device)
         embeds = torch.cat([torch.tensor(x) for x in embeds] , dim=0).to(device)
         netarc_embeds = torch.cat(netarc_embeds, dim=0).to(device)
+        Xt_embeds = netArc(F.interpolate(Xt, [112, 112], mode='area'))
 
         # generator training
         opt_G.zero_grad()
@@ -193,6 +196,16 @@ def train_one_epoch(G: 'generator model',
         
         #Y, Xt_attr = G(Xt, embeds)
         Y, Xt_attr = G(Xt, netarc_embeds)
+
+        #The model should handle inputs that are simply mirrored identically
+        Xt_mirrored = torch.flip(Xt, dims=[3])
+        Y_mirrored, Xt_attr_mirrored = G(Xt_mirrored, netarc_embeds)
+        Y_unmirrored = torch.flip(Y_mirrored, dims=[3])
+        mirror_loss = F.mse_loss(Y, Y_unmirrored)
+
+        #The model should be able to take the outputs and get back to the original inputs
+        Y_round_trip, Xt_attr_round_trip = G(Y, Xt_embeds)
+        round_trip_loss = F.mse_loss(Xt, Y_round_trip)
 
         # adversarial loss
         if D:
@@ -208,13 +221,18 @@ def train_one_epoch(G: 'generator model',
         high_quality_results_lmks_combined = torch.cat(high_quality_results_lmks, dim=0)
 
 
-        #Y_resized = F.interpolate(Xt, size=(128, 128), mode='area')
-        Y_resized = F.interpolate(Y, [112, 112], mode='area')
-        ZY = netArc(Y_resized)
+        Y_resized = F.interpolate(Xt, size=(128, 128), mode='area')
+        Y_resized_112 = F.interpolate(Y, [112, 112], mode='area')
+        ZY = netArc(Y_resized_112)
 
-        Y_tiny = F.interpolate(Y, [8, 8], mode='area')
-        Xt_tiny = F.interpolate(Xt, [8, 8], mode='area')
-        tiny_original_loss = torch.norm((Xt_tiny) - (Y_tiny), p=2)
+        if args.eye_detector_loss:
+            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
+            Xt_eyes, Xt_heatmap_left, Xt_heatmap_right = detect_landmarks(high_quality_results_resized, model_ft)
+            Y_eyes, Y_heatmap_left, Y_heatmap_right = detect_landmarks(Y, model_ft)
+            eye_heatmaps = [Xt_heatmap_left, Xt_heatmap_right, Y_heatmap_left, Y_heatmap_right]
+            L_l2_eyes = compute_eye_loss(eye_heatmaps)
+        else:
+            L_l2_eyes = torch.tensor(0.0).to(device)
 
         try:
             y_lmks = []
@@ -242,7 +260,7 @@ def train_one_epoch(G: 'generator model',
         #teacher_loss = l2_loss(soft_masks*Y_resized, soft_masks*high_quality_results_combined)
 
 
-        Xt_resized = F.interpolate(Xt, [112, 112], mode='area')
+        Xt_resized = F.interpolate(Xt, [128, 128], mode='area')
         if args.teacher_inner_crop == True:
             #Crops the inner 56x56 which is the part of the face we care most about
             crop_start = 28
@@ -262,83 +280,57 @@ def train_one_epoch(G: 'generator model',
             L_attr += torch.mean(torch.pow(Xt_attr[i] - Y_attr[i], 2).reshape(Xs_orig.size(0), -1), dim=1).mean()
         L_attr /= 2.0
         
-        #color_loss = color_consistency_loss(Y_resized)
 
         netarc_embeds_loss =(1 - torch.cosine_similarity(netarc_embeds, ZY, dim=1)).mean()
-        lmks_loss = torch.norm(high_quality_results_lmks_combined - y_lmks_combined, dim=2).mean()
-
-        #Y_hsv = get_hsv(Y)
-        #Xt_hsv = get_hsv(Xt)
-        #hsv_loss = torch.mean(torch.abs(Xt_hsv - Y_hsv))
-
-        #This is purely to fix an issue where some pixels of the face are not adjusting
-        #stuck_loss = stuck_loss_func(Y, (150, 133, 25, 25), region_penalty_weight=1000.5)
-
-        #edge_loss = batch_edge_loss(Y, Xt, 10)
-
-        #emboss_loss = emboss_loss_func(Y_resized, high_quality_results_combined)
-
+        
         universal_multiplier = 100
-        #tiny_original_loss_multiplier = 5.0
-        #emboss_loss_multiplier = 50.0
-        netarc_embeds_loss_from_hq_multiplier = 3.0
+
         L_attr_multiplier = 3.0
-        #hsv_loss_multiplier = 0.01
-        #edge_loss_multiplier = 0.3
-        L_adv_multiplier = 10.0
-        #color_loss_multiplier = 1000.0
-        
-
-        #if lmks_loss.item() > 500:
-        #    lmks_loss_multiplier = 0.001
-        #elif lmks_loss.item() < 20:
-        #    lmks_loss_multiplier = 5.0
-        #else:
-        #    lmks_loss_multiplier = 1.0
-
-        #if netarc_embeds_loss.item() > 2:
-        netarc_embeds_loss_multiplier = 3.5
-        #else:
-        #    netarc_embeds_loss_multiplier = 7.0
-
-        #if teacher_loss.item() > 50:
+        L_adv_multiplier = 0.5
         teacher_loss_multiplier = 30.0 #25.0 #20.0
-        #else:
-        #    teacher_loss_multiplier = 1.0
-            #teacher_loss_multiplier = 50
 
-        #TEMPORARILY REMOVE TEACHER LOSS
-        #teacher_loss_multiplier = 0.0
+        round_trip_loss_multiplier = 1.0
+        while universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item() < 100:
+            round_trip_loss_multiplier = round_trip_loss_multiplier * 1.1
+
+        mirror_loss_multiplier = 1.0
+        while universal_multiplier*mirror_loss_multiplier*mirror_loss.item() < 10:
+            mirror_loss_multiplier = mirror_loss_multiplier * 1.1
+            
+        netarc_embeds_loss_from_hq_multiplier = 3.0
+        while universal_multiplier*netarc_embeds_loss_from_hq_multiplier*netarc_embeds_loss_from_hq.item() < 250:
+            netarc_embeds_loss_from_hq_multiplier = netarc_embeds_loss_from_hq_multiplier * 1.1
+
+        netarc_embeds_loss_multiplier = 3.5
+        while universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss.item() < 200:
+            netarc_embeds_loss_multiplier = netarc_embeds_loss_multiplier * 1.1
         
+        L_l2_eyes_multiplier = 1.0
+        while universal_multiplier*L_l2_eyes_multiplier*L_l2_eyes.item() < 100:
+            L_l2_eyes_multiplier = L_l2_eyes_multiplier * 1.1
+        
+
         if args.teacher_fine_tune == False:   
             if D:
                 total_loss = universal_multiplier * ( 
-                                #tiny_original_loss_multiplier * tiny_original_loss +
                                 netarc_embeds_loss_multiplier * netarc_embeds_loss + 
-                                #lmks_loss_multiplier * lmks_loss  + 
                                 netarc_embeds_loss_from_hq_multiplier * netarc_embeds_loss_from_hq +
                                 L_attr_multiplier * L_attr + 
-                                #emboss_loss_multiplier * emboss_loss +
-                                #hsv_loss_multiplier + hsv_loss +
                                 teacher_loss_multiplier * teacher_loss +
-                                #edge_loss_multiplier * edge_loss +
-                                #color_loss_multiplier * color_loss +
-                                L_adv_multiplier * L_adv 
-                                #+ stuck_loss
+                                L_adv_multiplier * L_adv  + 
+                                L_l2_eyes_multiplier * L_l2_eyes +
+                                mirror_loss_multiplier * mirror_loss +
+                                round_trip_loss_multiplier * round_trip_loss
                             )
             else: 
                 total_loss = universal_multiplier * ( 
-                                ##tiny_original_loss_multiplier * tiny_original_loss +
                                 netarc_embeds_loss_multiplier * netarc_embeds_loss + 
-                                #lmks_loss_multiplier * lmks_loss  + 
                                 netarc_embeds_loss_from_hq_multiplier * netarc_embeds_loss_from_hq +
                                 L_attr_multiplier * L_attr + 
-                                #emboss_loss_multiplier * emboss_loss +
-                                #hsv_loss_multiplier + hsv_loss +
-                                teacher_loss_multiplier * teacher_loss
-                                #+ edge_loss_multiplier * edge_loss
-                                #+ color_loss_multiplier * color_loss
-                                #+ stuck_loss
+                                teacher_loss_multiplier * teacher_loss +
+                                L_l2_eyes_multiplier * L_l2_eyes +
+                                mirror_loss_multiplier * mirror_loss + 
+                                round_trip_loss_multiplier * round_trip_loss
                             )
         else:
             teacher_loss_multiplier = teacher_loss_multiplier * 1000
@@ -359,11 +351,11 @@ def train_one_epoch(G: 'generator model',
             lossD = compute_discriminator_loss(D, Y, Xs, diff_person)
 
             #universal_multiplier = 1.0
-            lossD_multiplier = 50.0
+            lossD_multiplier = 0.5
             
 
             # Backward and optimize
-            if iteration % 30 == 0:
+            if iteration % 10 == 0:
                 total_lossD = universal_multiplier * lossD_multiplier * lossD
                 opt_D.zero_grad()
                 total_lossD.backward()
@@ -386,10 +378,13 @@ def train_one_epoch(G: 'generator model',
         if iteration % 10 == 0:
             print(f'epoch:                      {epoch}    {iteration} / {len(dataloader)}')
             #print(f'tiny_original_loss:         {universal_multiplier*tiny_original_loss_multiplier*tiny_original_loss.item()}')
-            print(f'netarc_embeds_loss:         {universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss.item()}')
-            print(f'netarc_embeds_loss_from_hq: {universal_multiplier*netarc_embeds_loss_from_hq_multiplier*netarc_embeds_loss_from_hq.item()}')
+            print(f'netarc_embeds_loss:         {universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss.item()}      (x{netarc_embeds_loss_multiplier})')
+            print(f'netarc_embeds_loss_from_hq: {universal_multiplier*netarc_embeds_loss_from_hq_multiplier*netarc_embeds_loss_from_hq.item()}      (x{netarc_embeds_loss_from_hq_multiplier})')
             #print(f'lmks_loss:                  {universal_multiplier*lmks_loss_multiplier*lmks_loss.item()}')
             print(f'L_attr:                     {universal_multiplier*L_attr_multiplier*L_attr.item()}')
+            print(f'L_l2_eyes:                  {universal_multiplier*L_l2_eyes_multiplier*L_l2_eyes.item()}')
+            print(f'mirror_loss:                {universal_multiplier*mirror_loss_multiplier*mirror_loss.item()}        (x{mirror_loss_multiplier})')
+            print(f'round_trip_loss:            {universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item()}        (x{round_trip_loss_multiplier})')
             #print(f'emboss_loss:                {universal_multiplier*emboss_loss_multiplier*emboss_loss.item()}')
             #print(f'hsv_loss:                   {universal_multiplier*hsv_loss_multiplier*hsv_loss.item()}')
             #print(f'edge_loss:                  {universal_multiplier*edge_loss_multiplier*edge_loss.item()}')
@@ -444,6 +439,23 @@ def train(args, device):
     netArc=netArc.cuda()
     netArc.eval()
         
+    if args.eye_detector_loss:
+        model_ft = models.FAN(4, "False", "False", 98)
+        checkpoint = torch.load('./AdaptiveWingLoss/AWL_detector/WFLW_4HG.pth')
+        if 'state_dict' not in checkpoint:
+            model_ft.load_state_dict(checkpoint)
+        else:
+            pretrained_weights = checkpoint['state_dict']
+            model_weights = model_ft.state_dict()
+            pretrained_weights = {k: v for k, v in pretrained_weights.items() \
+                                  if k in model_weights}
+            model_weights.update(pretrained_weights)
+            model_ft.load_state_dict(model_weights)
+        model_ft = model_ft.to(device)
+        model_ft.eval()
+    else:
+        model_ft=None
+
     opt_G = optim.Adam(G.parameters(), lr=args.lr_G, betas=(0, 0.999), weight_decay=1e-4)
     
     if args.scheduler:
@@ -459,7 +471,7 @@ def train(args, device):
             print("Not found pretrained weights. Continue without any pretrained weights.")
     
     if args.celeb:
-        dataset = CelebADataset(args.dataset_path, args.normalize_training_images)        
+        dataset = CelebADataset(args.dataset_path, args.normalize_training_images, args.fine_tune_filter)        
     elif args.vgg:
         dataset = FaceEmbedVGG2(args.dataset_path, same_prob=args.same_person, same_identity=args.same_identity)
     else:
@@ -477,6 +489,7 @@ def train(args, device):
                         opt_D,
                         scheduler_D,
                         netArc,
+                        model_ft,
                         args,
                         dataloader,
                         device,
@@ -517,7 +530,7 @@ if __name__ == "__main__":
     parser.add_argument('--scheduler', default=False, type=bool, help='If True decreasing LR is used for learning of generator')
     parser.add_argument('--scheduler_step', default=5000, type=int)
     parser.add_argument('--scheduler_gamma', default=0.2, type=float, help='It is value, which shows how many times to decrease LR')
-    parser.add_argument('--eye_detector_loss', default=False, type=bool, help='If True eye loss with using AdaptiveWingLoss detector is applied to generator')
+    parser.add_argument('--eye_detector_loss', default=True, type=bool, help='If True eye loss with using AdaptiveWingLoss detector is applied to generator')
     # info about this run
     parser.add_argument('--run_name', required=True, type=str, help='Name of this run. Used to create folders where to save the weights.')
     # training params you probably don't want to change
@@ -534,6 +547,7 @@ if __name__ == "__main__":
     parser.add_argument('--teacher_fine_tune', default=False, type=bool)
     parser.add_argument('--teacher_inner_crop', default=False, type=bool)
     parser.add_argument('--normalize_training_images', default=False, type=bool)
+    parser.add_argument('--fine_tune_filter', default=None, type=str)
     parser.add_argument('--verbose_output', default=False, type=bool, help='More print() when training')
 
     args = parser.parse_args()

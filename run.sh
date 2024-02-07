@@ -14,5 +14,6 @@ docker run -it --shm-size=2gb --gpus all \
     -v /mnt/d/TrainingData/DigiFace1M/:/digiface \
     -v /mnt/d/TrainingData/FromBadges/raw:/frombadges \
     -v /mnt/d/TrainingData/FromBadges/crop:/frombadges_crop \
+    -v /mnt/d/TrainingData/real_faces_128:/real_faces_128 \
     -v ./output:/app/ghost/output/ \
     ghost-onnx-export:latest
