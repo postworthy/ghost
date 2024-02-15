@@ -158,6 +158,22 @@ python3 train.py --run_name test_with_pretrained_82 --show_step 20 --batch_size 
 
 python3 train.py --run_name test_with_pretrained_83 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_82/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_82/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 
+#Filter only tag w/ attractive
+python3 train.py --run_name test_with_pretrained_84 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_83/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_83/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --only_attractive True
+
+python3 train.py --run_name test_with_pretrained_85 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_84/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_84/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --only_attractive True  --normalize_training_images True
+
+#Tune for 2000 on real images into generated images to remove artifacts
+python3 train.py --run_name test_with_pretrained_86 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_85/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_85/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --normalize_training_images True --into_data_path /sdxl_turbo_faces
+
+python3 train.py --run_name test_with_pretrained_87 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_86/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000 --normalize_training_images True
+
+python3 train.py --run_name test_with_pretrained_88 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_86/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --without_teacher_loss True
+
+python3 train.py --run_name test_with_pretrained_89 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_88/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_88/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --without_teacher_loss True
+
+
+
 #########
 #Leverage Pretrained Discriminator
 
@@ -170,8 +186,29 @@ python3 train.py --run_name test_with_pretrained_48 --show_step 20 --batch_size 
 python3 train-discriminator.py --run_name discriminator_1 --show_step 2000 --batch_size 16  --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000
 
 
+######################################
+#Upsampler
+
+python3 train-upsampler.py --run_name upsampler_1 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_test_with_pretrained_86/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-upsampler.py --run_name upsampler_2 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_1/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-upsampler.py --run_name upsampler_3 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_2/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_2/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-upsampler.py --run_name upsampler_4 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_3/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_3/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-upsampler.py --run_name upsampler_5 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_4/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-upsampler.py --run_name upsampler_6 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+
+
 #####
 #####
 After running around 10-12 epochs at batch_size 8 what happens if we modify the batch size making it smaller 6?
 * Currently test_with_pretrained_66 is the latest trained prior to fine tuning attempts
 * Currently test_with_pretrained_73 which has jitter tuned in appears to be the best model with some noticible artifacts around the eyes
+* test_with_pretrained_83 should be the best after training.
+* test_with_pretrained_85 is the best now, it has been dialed in the best on color variations
+* test_with_pretrained_86 is the best now, it has been dialed in the best on real into face sdxl images
+* There is no benefit of training on sdxl generated data mixed with non sdxl generated data, I am curious if swapping into sdxl images and using those as training would be helpful?
+* With the right parameters (train-upsampler.py - 35000 upsampler + 1.0 teacher + 3.5 netarc) the saved_models_upsampler_4 model appears to be a model with both fedelity to the original face and higher details than simply training agains the 128x128 teacher, there may be slight color loss but I believe this is the best so far.
+* saved_models_upsampler_4 is the best thus far with the training parameters above, but I am testing options for bringing the colors back inline.
+* Training training to match lower quality teacher followed by upsampler training with step one resulting model as new teacher for upsampler is the best approach for building a new model by far.
+* With the right parameters (train-upsampler.py - 30000 upsampler + 1.0 teacher + 3.5 netarc) saved_models_upsampler_5 was trained as a continuation from saved_models_upsampler_4 
+* saved_models_upsampler_5 is the best thus far with the training parameters above, but I am testing options for bringing the colors back inline.
+* I have noticed that if you run the train-upsampler.py with normalization on then it can lead to a model that blacks out after 1k-2k runs
