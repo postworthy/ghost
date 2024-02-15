@@ -153,7 +153,8 @@ def train_one_epoch(G: 'generator model',
 
                     high_quality_pred_tensor = torch.from_numpy(high_quality_pred).to(device)
                     HQ_Resized = F.interpolate(high_quality_pred_tensor, [112, 112], mode='area')
-                    PRED = netArc(HQ_Resized)
+                    with torch.no_grad():
+                        PRED = netArc(HQ_Resized)
                     high_quality_results_netarc.append(PRED)
                     high_quality_results.append(high_quality_pred_tensor)
                 except Exception as e:
@@ -182,7 +183,8 @@ def train_one_epoch(G: 'generator model',
         same_person = torch.cat(same_person, dim=0).to(device)
         embeds = torch.cat([torch.tensor(x) for x in embeds] , dim=0).to(device)
         netarc_embeds = torch.cat(netarc_embeds, dim=0).to(device)
-        Xt_embeds = netArc(F.interpolate(Xt, [112, 112], mode='area'))
+        with torch.no_grad():
+            Xt_embeds = netArc(F.interpolate(Xt, [112, 112], mode='area'))
 
         # generator training
         opt_G.zero_grad()
@@ -223,7 +225,8 @@ def train_one_epoch(G: 'generator model',
 
         Y_resized = F.interpolate(Xt, size=(128, 128), mode='area')
         Y_resized_112 = F.interpolate(Y, [112, 112], mode='area')
-        ZY = netArc(Y_resized_112)
+        with torch.no_grad():
+            ZY = netArc(Y_resized_112)
 
         if args.eye_detector_loss:
             high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
@@ -309,6 +312,10 @@ def train_one_epoch(G: 'generator model',
         while universal_multiplier*L_l2_eyes_multiplier*L_l2_eyes.item() < 100:
             L_l2_eyes_multiplier = L_l2_eyes_multiplier * 1.1
         
+        if args.without_teacher_loss == True:
+            teacher_loss = torch.tensor(0.0).to(device)
+            netarc_embeds_loss_from_hq = torch.tensor(0.0).to(device)
+            L_l2_eyes = torch.tensor(0.0).to(device)
 
         if args.teacher_fine_tune == False:   
             if D:
@@ -471,7 +478,7 @@ def train(args, device):
             print("Not found pretrained weights. Continue without any pretrained weights.")
     
     if args.celeb:
-        dataset = CelebADataset(args.dataset_path, args.normalize_training_images, args.fine_tune_filter)        
+        dataset = CelebADataset(args.dataset_path, args.normalize_training_images, args.fine_tune_filter, only_attractive=args.only_attractive, into_data_path=args.into_data_path)
     elif args.vgg:
         dataset = FaceEmbedVGG2(args.dataset_path, same_prob=args.same_person, same_identity=args.same_identity)
     else:
@@ -546,8 +553,11 @@ if __name__ == "__main__":
     parser.add_argument('--save_interval', default=2500, type=int)
     parser.add_argument('--teacher_fine_tune', default=False, type=bool)
     parser.add_argument('--teacher_inner_crop', default=False, type=bool)
+    parser.add_argument('--only_attractive', default=False, type=bool)
     parser.add_argument('--normalize_training_images', default=False, type=bool)
     parser.add_argument('--fine_tune_filter', default=None, type=str)
+    parser.add_argument('--into_data_path', default=None, type=str)
+    parser.add_argument('--without_teacher_loss', default=False, type=bool)
     parser.add_argument('--verbose_output', default=False, type=bool, help='More print() when training')
 
     args = parser.parse_args()
