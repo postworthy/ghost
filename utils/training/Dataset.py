@@ -9,10 +9,10 @@ import cv2
 import tqdm
 import sys
 import torch 
-#from utils.training.helpers import RandomRGBtoBGR
+from utils.training.helpers import RandomRGBtoBGR
 sys.path.append('..')
 # from utils.cap_aug import CAP_AUG
-    
+import csv    
 
 class FaceEmbed(TensorDataset):
     def __init__(self, data_path_list, same_prob=0.8):
@@ -141,13 +141,41 @@ class FaceEmbedVGG2(TensorDataset):
 
     def __len__(self):
         return self.N
+
+class CSVParser:
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.data = []
+
+    def parse(self):
+        with open(self.filepath, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                # Convert -1/1 to False/True for each attribute except 'image_id'
+                parsed_row = {attribute: (True if value == '1' else False)
+                              for attribute, value in row.items() if attribute != 'image_id'}
+                # Keep 'image_id' as it is
+                parsed_row['image_id'] = row['image_id']
+                self.data.append(parsed_row)
+
+    def get_data(self):
+        return self.data
     
+    def get_image_ids_by_attribute(self, attribute_name):
+        return [row['image_id'] for row in self.data if row.get(attribute_name)]
+
+
+
 class CelebADataset(TensorDataset):
-    def __init__(self, data_path, normalize=False, fine_tune_filter=None):
+    def __init__(self, data_path, normalize=False, fine_tune_filter=None, csv_file='list_attr_celeba.csv', only_attractive=False, into_data_path=None):
         
-        # Load all images from the specified path
-        
+        # Load all images from the specified path        
         self.normalize = normalize
+
+        if into_data_path:
+            self.into_images_list = glob.glob(f'{into_data_path}/*.*g')
+        else:
+            self.into_images_list = []
 
         if not fine_tune_filter == None:
             self.images_list = [f for f in glob.glob(f'{data_path}/*.*g') if fine_tune_filter not in f]
@@ -155,6 +183,19 @@ class CelebADataset(TensorDataset):
         else:
             self.images_list = glob.glob(f'{data_path}/*.*g')
             self.fine_tune_list = []
+
+        csv_path = os.path.join(data_path, csv_file)
+        if only_attractive and os.path.exists(csv_path):
+            parser = CSVParser(csv_path)
+            parser.parse()
+            attractive_ids = parser.get_image_ids_by_attribute('Attractive')
+            self.attractive_image_list = [image for image in self.images_list if os.path.basename(image) in attractive_ids]
+        else:
+            self.attractive_image_list = []
+
+
+        if only_attractive and len(self.attractive_image_list) > 0:
+            self.images_list = self.attractive_image_list
 
         random.shuffle(self.images_list)
         
@@ -184,7 +225,7 @@ class CelebADataset(TensorDataset):
             transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
             #transforms.ColorJitter(1.5, 0.2, 0.2, 0.1),
             transforms.Resize((224, 224)),
-            #RandomRGBtoBGR(),
+            RandomRGBtoBGR(),
             transforms.ToTensor(),
             #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
@@ -193,7 +234,7 @@ class CelebADataset(TensorDataset):
             transforms.ColorJitter((0.4, 1.8), (0.4, 1.8), (0.4, 1.8), 0.08),
             #transforms.ColorJitter(1.5, 0.2, 0.2, 0.1),
             transforms.Resize((256, 256)),
-            #RandomRGBtoBGR(),
+            RandomRGBtoBGR(),
             transforms.ToTensor(),
             #transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
             #transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
@@ -214,11 +255,18 @@ class CelebADataset(TensorDataset):
                 Xs = cv2.flip(Xs, 1)
             Xs = Image.fromarray(Xs)
 
-        image_path = random.choice(self.images_list)
-        Xt = cv2.imread(image_path)[:, :, ::-1]
-        if random.randint(0, 1) == 1:
-            Xt = cv2.flip(Xt, 1)
-        Xt = Image.fromarray(Xt)
+        if len(self.into_images_list) == 0:
+            image_path = random.choice(self.images_list)
+            Xt = cv2.imread(image_path)[:, :, ::-1]
+            if random.randint(0, 1) == 1:
+                Xt = cv2.flip(Xt, 1)
+            Xt = Image.fromarray(Xt)
+        else:
+            image_path = random.choice(self.into_images_list)
+            Xt = cv2.imread(image_path)[:, :, ::-1]
+            if random.randint(0, 1) == 1:
+                Xt = cv2.flip(Xt, 1)
+            Xt = Image.fromarray(Xt)
 
         if not self.normalize:
             return self.transforms_arcface(Xs), self.transforms_base(Xs), self.transforms_tensor(Xt), self.transforms_base(Xt), 0
