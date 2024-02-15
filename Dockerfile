@@ -44,6 +44,29 @@ RUN pip3 install kornia==0.5.4
 RUN pip3 install dill
 RUN pip3 install wandb
 
+#START GFPGAN
+RUN pip3 install basicsr 
+RUN pip3 install facexlib
+
+RUN git clone https://github.com/postworthy/GFPGAN.git
+RUN cd GFPGAN && pip install -r requirements.txt && python3 setup.py develop
+RUN ln -s GFPGAN/gfpgan .
+
+RUN git clone https://github.com/xinntao/Real-ESRGAN.git
+RUN cd Real-ESRGAN && pip install -r requirements.txt && python3 setup.py develop
+RUN ln -s Real-ESRGAN/realesrgan .
+RUN mkdir -p /app/ghost/gfpgan/weights/
+RUN mkdir -p /app/ghost/utils/training/
+
+RUN ln -s /root/.superres/realesr-general-x4v3.pth /app/ghost/utils/training/realesr-general-x4v3.pth
+RUN ln -s /root/.superres/RealESRGAN_x4plus.pth /app/ghost/utils/training/RealESRGAN_x4plus.pth
+RUN ln -s /root/.superres/GFPGANv1.4.pth /app/ghost/utils/training/GFPGANv1.4.pth
+RUN ln -s /root/.superres/detection_Resnet50_Final.pth /app/ghost/gfpgan/weights/detection_Resnet50_Final.pth
+RUN ln -s /root/.superres/parsing_parsenet.pth /app/ghost/gfpgan/weights/parsing_parsenet.pth
+
+RUN cd GFPGAN && git pull
+#END GFPGAN
+
 #ADD ./export-onnx.py /app/ghost/
 ADD ./models/ ./models/
 ADD ./network/ ./network/
