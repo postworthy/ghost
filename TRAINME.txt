@@ -196,6 +196,14 @@ python3 train-upsampler.py --run_name upsampler_4 --show_step 20 --batch_size 8 
 python3 train-upsampler.py --run_name upsampler_5 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_4/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 python3 train-upsampler.py --run_name upsampler_6 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_test_with_pretrained_86/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 
+#Upsampler w/ variations in data (Teacher is saved_models_upsampler_5, current best)
+python3 train-upsampler.py --run_name upsampler_7 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_5/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000 --normalize_training_images True
+
+
+######################################
+#Rount trip
+
+python3 train-roundtrip.py --run_name roundtrip_1 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_5/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 
 #####
 #####
