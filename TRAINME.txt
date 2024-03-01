@@ -200,10 +200,29 @@ python3 train-upsampler.py --run_name upsampler_6 --show_step 20 --batch_size 8 
 python3 train-upsampler.py --run_name upsampler_7 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_5/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /sdxl_turbo_faces --save_interval 2000 --normalize_training_images True
 
 
+python3 train-upsampler.py --run_name upsampler_8 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_5/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --normalize_training_images True
+
 ######################################
-#Rount trip
+#Round trip
 
 python3 train-roundtrip.py --run_name roundtrip_1 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_5/G_latest.pth --D_path ./output/saved_models_upsampler_5/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+
+python3 train-roundtrip.py --run_name roundtrip_2 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_upsampler_8/G_latest.pth --D_path ./output/saved_models_upsampler_8/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_8/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --normalize_training_images True
+
+
+######################################
+#Self Training
+
+python3 train-self.py --run_name self_trained_1 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_roundtrip_1/G_latest.pth --pretrained True --G_path ./output/saved_models_roundtrip_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+
+
+######################################
+#train but with upsampled model as starting point (Also removed mirror & roundtrip) (Also added --teacher_upsample)
+
+python3 train.py --run_name test_with_pretrained_upsampled_1 --show_step 20 --batch_size 8 --D_path ./output/saved_models_upsampler_8/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_8/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True
+
+python3 train.py --run_name test_with_pretrained_upsampled_2 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True --normalize_training_images True
+
 
 #####
 #####
@@ -220,3 +239,8 @@ After running around 10-12 epochs at batch_size 8 what happens if we modify the 
 * With the right parameters (train-upsampler.py - 30000 upsampler + 1.0 teacher + 3.5 netarc) saved_models_upsampler_5 was trained as a continuation from saved_models_upsampler_4 
 * saved_models_upsampler_5 is the best thus far with the training parameters above, but I am testing options for bringing the colors back inline.
 * I have noticed that if you run the train-upsampler.py with normalization on then it can lead to a model that blacks out after 1k-2k runs
+* Round tripping to recover the Xs image seems to worked to tune the model effectively but no effective path was found for tuning towards recovering Xt
+* roundtrip_1 is the current best model
+* It is likely that the reason the upsampler was seeing cases of zeroing out when normalizing data is because of NaNs returning, in this case you could replace NaN with 0.0
+* Additional runs through train.py with --teacher_upsample results in color alignment as well as improved results
+* saved_models_test_with_pretrained_upsampled_1 is now the best model
