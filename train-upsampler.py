@@ -33,7 +33,7 @@ from insightface.utils import face_align
 
 from utils.training.helpers import get_hsv, stuck_loss_func, batch_edge_loss, emboss_loss_func, structural_loss, compute_eye_loss
 from utils.training.losses import compute_discriminator_loss
-from utils.training.upsampler  import upsample
+from utils.training.upsampler  import upscale
 from models.MultiScalePerceptualColorLoss import MultiScalePerceptualColorLoss
 
 print("finished imports")
@@ -41,21 +41,6 @@ print("finished imports")
 print("started globals")
 multiscale_color_loss_func = MultiScalePerceptualColorLoss()
 print("finished globals")
-
-def upscale(images):
-    # Assuming images are on GPU, need to move them to CPU and convert to NumPy for Real-ESRGAN processing
-    images_np = images.detach().cpu().permute(0, 2, 3, 1).numpy()  # Convert from torch to numpy and NCHW to NHWC
-
-    upscaled_images = []
-    for image_np in images_np:
-        image_np_uint8 = (image_np * 255).astype(np.uint8)
-        upscaled_image_np = upsample(image_np_uint8)
-        upscaled_image_np = upscaled_image_np.astype(np.float32) / 255.0
-        upscaled_images.append(upscaled_image_np)
-
-    upscaled_images_tensor = torch.from_numpy(np.stack(upscaled_images)).permute(0, 3, 1, 2).to(images.device)
-    return F.interpolate(upscaled_images_tensor, [256, 256], mode='bilinear', align_corners=False)
-
 
 def train_one_epoch(G: 'generator model', 
                     opt_G: "generator opt", 
@@ -131,8 +116,8 @@ def train_one_epoch(G: 'generator model',
         #eye_heatmaps = [Xt_heatmap_left, Xt_heatmap_right, Y_heatmap_left, Y_heatmap_right]
         #Y_L_l2_eyes = compute_eye_loss(eye_heatmaps)
         #upsample_loss = Y_L_l2_eyes  #Add nose, mouth if eyes works
-        upsample_loss = F.mse_loss(Y_upsampled, Y)
         
+        upsample_loss = F.mse_loss(Y_upsampled, Y)
 
         with torch.no_grad():
             Y_resized_112 = F.interpolate(Y, [112, 112], mode='area')
@@ -141,6 +126,7 @@ def train_one_epoch(G: 'generator model',
         tZY = netArc(F.interpolate(tY, [112, 112], mode='bilinear', align_corners=False))
         netarc_embeds_loss =(1 - torch.cosine_similarity(tZY, ZY, dim=1)).mean()
         teacher_loss = torch.norm((Xt - tY) - (Xt - Y), p=2)
+        
 
         L_adv_multiplier = 0.5
 

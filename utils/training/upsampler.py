@@ -6,7 +6,9 @@ from realesrgan import RealESRGANer
 from realesrgan.archs.srvgg_arch import SRVGGNetCompact
 from basicsr.archs.rrdbnet_arch import RRDBNet
 from gfpgan import GFPGANer #https://github.com/postworthy/GFPGAN
-
+import torch
+import numpy as np
+import torch.nn.functional as F
 
 THREAD_LOCK_UPSAMPLER = threading.Lock()
 THREAD_LOCK_UPSAMPLER_FAST = threading.Lock()
@@ -101,3 +103,18 @@ def upsample(image_data, fast=True, has_aligned=False, up_by=None):
         upsampler.cleanup() #Requires using https://github.com/postworthy/GFPGAN
     
     return output
+
+def upscale(images):
+    
+    # Assuming images are on GPU, need to move them to CPU and convert to NumPy for Real-ESRGAN processing
+    images_np = images.detach().cpu().permute(0, 2, 3, 1).numpy()  # Convert from torch to numpy and NCHW to NHWC
+
+    upscaled_images = []
+    for image_np in images_np:
+        image_np_uint8 = (image_np * 255).astype(np.uint8)
+        upscaled_image_np = upsample(image_np_uint8)
+        upscaled_image_np = upscaled_image_np.astype(np.float32) / 255.0
+        upscaled_images.append(upscaled_image_np)
+
+    upscaled_images_tensor = torch.from_numpy(np.stack(upscaled_images)).permute(0, 3, 1, 2).to(images.device)
+    return F.interpolate(upscaled_images_tensor, [256, 256], mode='bilinear', align_corners=False)
