@@ -33,6 +33,7 @@ from insightface.utils import face_align
 
 from utils.training.helpers import get_hsv, stuck_loss_func, batch_edge_loss, emboss_loss_func, structural_loss, compute_eye_loss
 from utils.training.losses import compute_discriminator_loss
+from utils.training.upsampler  import upscale
 
 print("finished imports")
 
@@ -183,8 +184,8 @@ def train_one_epoch(G: 'generator model',
         same_person = torch.cat(same_person, dim=0).to(device)
         embeds = torch.cat([torch.tensor(x) for x in embeds] , dim=0).to(device)
         netarc_embeds = torch.cat(netarc_embeds, dim=0).to(device)
-        with torch.no_grad():
-            Xt_embeds = netArc(F.interpolate(Xt, [112, 112], mode='area'))
+        #with torch.no_grad():
+        #    Xt_embeds = netArc(F.interpolate(Xt, [112, 112], mode='area'))
 
         # generator training
         opt_G.zero_grad()
@@ -200,14 +201,14 @@ def train_one_epoch(G: 'generator model',
         Y, Xt_attr = G(Xt, netarc_embeds)
 
         #The model should handle inputs that are simply mirrored identically
-        Xt_mirrored = torch.flip(Xt, dims=[3])
-        Y_mirrored, Xt_attr_mirrored = G(Xt_mirrored, netarc_embeds)
-        Y_unmirrored = torch.flip(Y_mirrored, dims=[3])
-        mirror_loss = F.mse_loss(Y, Y_unmirrored)
+        #Xt_mirrored = torch.flip(Xt, dims=[3])
+        #Y_mirrored, Xt_attr_mirrored = G(Xt_mirrored, netarc_embeds)
+        #Y_unmirrored = torch.flip(Y_mirrored, dims=[3])
+        #mirror_loss = F.mse_loss(Y, Y_unmirrored)
 
         #The model should be able to take the outputs and get back to the original inputs
-        Y_round_trip, Xt_attr_round_trip = G(Y, Xt_embeds)
-        round_trip_loss = F.mse_loss(Xt, Y_round_trip)
+        #Y_round_trip, Xt_attr_round_trip = G(Y, Xt_embeds)
+        #round_trip_loss = F.mse_loss(Xt, Y_round_trip)
 
         # adversarial loss
         if D:
@@ -220,7 +221,11 @@ def train_one_epoch(G: 'generator model',
 
         high_quality_results_netarc_combined = torch.cat(high_quality_results_netarc, dim=0)
         high_quality_results_combined = torch.cat(high_quality_results, dim=0)
-        high_quality_results_lmks_combined = torch.cat(high_quality_results_lmks, dim=0)
+
+        if args.teacher_upsample:
+            high_quality_results_combined = upscale(high_quality_results_combined)
+
+        #high_quality_results_lmks_combined = torch.cat(high_quality_results_lmks, dim=0)
 
 
         Y_resized = F.interpolate(Xt, size=(128, 128), mode='area')
@@ -229,7 +234,10 @@ def train_one_epoch(G: 'generator model',
             ZY = netArc(Y_resized_112)
 
         if args.eye_detector_loss:
-            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
+            if args.teacher_upsample:
+                high_quality_results_resized = high_quality_results_combined
+            else:
+                high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
             Xt_eyes, Xt_heatmap_left, Xt_heatmap_right = detect_landmarks(high_quality_results_resized, model_ft)
             Y_eyes, Y_heatmap_left, Y_heatmap_right = detect_landmarks(Y, model_ft)
             eye_heatmaps = [Xt_heatmap_left, Xt_heatmap_right, Y_heatmap_left, Y_heatmap_right]
@@ -237,45 +245,58 @@ def train_one_epoch(G: 'generator model',
         else:
             L_l2_eyes = torch.tensor(0.0).to(device)
 
-        try:
-            y_lmks = []
-            #landmark_2d_106 need to be calculated at 128x128, only because that is how they were calculated with the teacher model
-            Y_resized_128 = F.interpolate(Y, [128, 128], mode='area')
-            for i, image in enumerate(Y_resized_128):
-                img_fake = Y_resized_128.detach().cpu().numpy().transpose((0,2,3,1))[i]
-                bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
-                if verbose_output:
-                    Image.fromarray(cv2.cvtColor(bgr_fake,cv2.COLOR_RGBA2BGR)).save(f'./output/images/Y_resized_{i}.jpg')
-                bgr_fake = cv2.copyMakeBorder(bgr_fake, top=border_size, bottom=border_size, left=border_size, right=border_size, borderType=cv2.BORDER_CONSTANT, value=[255, 255, 255])
-                face = face_analyser.get(bgr_fake)[0]
-                y_lmks_tensor = torch.from_numpy(face.landmark_2d_106).unsqueeze(0).to(device)
-                y_lmks.append(y_lmks_tensor)
-            y_lmks_combined = torch.cat(y_lmks, dim=0)
-        except Exception as e:
-            # Create a tensor of zeros with the same shape as high_quality_results_lmks_combined
-            y_lmks_combined = torch.zeros_like(high_quality_results_lmks_combined)
-            if verbose_output:
-                print(e)
+        #try:
+        #    y_lmks = []
+        #    #landmark_2d_106 need to be calculated at 128x128, only because that is how they were calculated with the teacher model
+        #    Y_resized_128 = F.interpolate(Y, [128, 128], mode='area')
+        #    for i, image in enumerate(Y_resized_128):
+        #        img_fake = Y_resized_128.detach().cpu().numpy().transpose((0,2,3,1))[i]
+        #        bgr_fake = np.clip(255 * img_fake, 0, 255).astype(np.uint8)[:,:,::-1]
+        #        if verbose_output:
+        #            Image.fromarray(cv2.cvtColor(bgr_fake,cv2.COLOR_RGBA2BGR)).save(f'./output/images/Y_resized_{i}.jpg')
+        #        bgr_fake = cv2.copyMakeBorder(bgr_fake, top=border_size, bottom=border_size, left=border_size, right=border_size, borderType=cv2.BORDER_CONSTANT, value=[255, 255, 255])
+        #        face = face_analyser.get(bgr_fake)[0]
+        #        y_lmks_tensor = torch.from_numpy(face.landmark_2d_106).unsqueeze(0).to(device)
+        #        y_lmks.append(y_lmks_tensor)
+        #    y_lmks_combined = torch.cat(y_lmks, dim=0)
+        #except Exception as e:
+        #    # Create a tensor of zeros with the same shape as high_quality_results_lmks_combined
+        #    y_lmks_combined = torch.zeros_like(high_quality_results_lmks_combined)
+        #    if verbose_output:
+        #        print(e)
 
 
         #high_quality_pred = torch.from_numpy(high_quality_pred).to(device)
         netarc_embeds_loss_from_hq =(1 - torch.cosine_similarity(high_quality_results_netarc_combined, ZY, dim=1)).mean()
         #teacher_loss = l2_loss(soft_masks*Y_resized, soft_masks*high_quality_results_combined)
 
-
-        Xt_resized = F.interpolate(Xt, [128, 128], mode='area')
-        if args.teacher_inner_crop == True:
-            #Crops the inner 56x56 which is the part of the face we care most about
-            crop_start = 28
-            crop_end = 84
-            Xt_cropped = Xt_resized[:, :, crop_start:crop_end, crop_start:crop_end]
-            high_quality_cropped = high_quality_results_combined[:, :, crop_start:crop_end, crop_start:crop_end]
-            Y_cropped = Y_resized[:, :, crop_start:crop_end, crop_start:crop_end]
-            teacher_loss = torch.norm((Xt_cropped - high_quality_cropped) - (Xt_cropped - Y_cropped), p=2)
+        if args.teacher_upsample:
+            if args.teacher_inner_crop == True:
+                #Crops the inner 56x56 which is the part of the face we care most about
+                crop_start = 28
+                crop_end = 84
+                Xt_cropped = Xt[:, :, crop_start:crop_end, crop_start:crop_end]
+                high_quality_cropped = high_quality_results_combined[:, :, crop_start:crop_end, crop_start:crop_end]
+                Y_cropped = Y[:, :, crop_start:crop_end, crop_start:crop_end]
+                teacher_loss = torch.norm((Xt_cropped - high_quality_cropped) - (Xt_cropped - Y_cropped), p=2)
+            else:
+                #Not cropped
+                teacher_loss = torch.norm((Xt - high_quality_results_combined) - (Xt - Y), p=2)
+                #teacher_loss = structural_loss(high_quality_results_combined, Y_resized)
         else:
-            #Not cropped
-            teacher_loss = torch.norm((Xt_resized - high_quality_results_combined) - (Xt_resized - Y_resized), p=2)
-            #teacher_loss = structural_loss(high_quality_results_combined, Y_resized)
+            Xt_resized = F.interpolate(Xt, [128, 128], mode='area')
+            if args.teacher_inner_crop == True:
+                #Crops the inner 56x56 which is the part of the face we care most about
+                crop_start = 28
+                crop_end = 84
+                Xt_cropped = Xt_resized[:, :, crop_start:crop_end, crop_start:crop_end]
+                high_quality_cropped = high_quality_results_combined[:, :, crop_start:crop_end, crop_start:crop_end]
+                Y_cropped = Y_resized[:, :, crop_start:crop_end, crop_start:crop_end]
+                teacher_loss = torch.norm((Xt_cropped - high_quality_cropped) - (Xt_cropped - Y_cropped), p=2)
+            else:
+                #Not cropped
+                teacher_loss = torch.norm((Xt_resized - high_quality_results_combined) - (Xt_resized - Y_resized), p=2)
+                #teacher_loss = structural_loss(high_quality_results_combined, Y_resized)
 
         Y_attr = G.get_attr(Y)
         L_attr = 0
@@ -292,13 +313,13 @@ def train_one_epoch(G: 'generator model',
         L_adv_multiplier = 0.5
         teacher_loss_multiplier = 30.0 #25.0 #20.0
 
-        round_trip_loss_multiplier = 1.0
-        while universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item() < 100:
-            round_trip_loss_multiplier = round_trip_loss_multiplier * 1.1
+        #round_trip_loss_multiplier = 1.0
+        #while universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item() < 100:
+        #    round_trip_loss_multiplier = round_trip_loss_multiplier * 1.1
 
-        mirror_loss_multiplier = 1.0
-        while universal_multiplier*mirror_loss_multiplier*mirror_loss.item() < 10:
-            mirror_loss_multiplier = mirror_loss_multiplier * 1.1
+        #mirror_loss_multiplier = 1.0
+        #while universal_multiplier*mirror_loss_multiplier*mirror_loss.item() < 10:
+        #    mirror_loss_multiplier = mirror_loss_multiplier * 1.1
             
         netarc_embeds_loss_from_hq_multiplier = 3.0
         while universal_multiplier*netarc_embeds_loss_from_hq_multiplier*netarc_embeds_loss_from_hq.item() < 250:
@@ -325,9 +346,9 @@ def train_one_epoch(G: 'generator model',
                                 L_attr_multiplier * L_attr + 
                                 teacher_loss_multiplier * teacher_loss +
                                 L_adv_multiplier * L_adv  + 
-                                L_l2_eyes_multiplier * L_l2_eyes +
-                                mirror_loss_multiplier * mirror_loss +
-                                round_trip_loss_multiplier * round_trip_loss
+                                L_l2_eyes_multiplier * L_l2_eyes 
+                                #+ mirror_loss_multiplier * mirror_loss
+                                #+ round_trip_loss_multiplier * round_trip_loss
                             )
             else: 
                 total_loss = universal_multiplier * ( 
@@ -335,9 +356,9 @@ def train_one_epoch(G: 'generator model',
                                 netarc_embeds_loss_from_hq_multiplier * netarc_embeds_loss_from_hq +
                                 L_attr_multiplier * L_attr + 
                                 teacher_loss_multiplier * teacher_loss +
-                                L_l2_eyes_multiplier * L_l2_eyes +
-                                mirror_loss_multiplier * mirror_loss + 
-                                round_trip_loss_multiplier * round_trip_loss
+                                L_l2_eyes_multiplier * L_l2_eyes 
+                                #+ mirror_loss_multiplier * mirror_loss 
+                                #+ round_trip_loss_multiplier * round_trip_loss
                             )
         else:
             teacher_loss_multiplier = teacher_loss_multiplier * 1000
@@ -376,7 +397,10 @@ def train_one_epoch(G: 'generator model',
         batch_time = time.time() - start_time
 
         if iteration % args.show_step == 0:
-            high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
+            if args.teacher_upsample:
+                high_quality_results_resized = high_quality_results_combined
+            else:
+                high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
             images = [Xs, Xt, high_quality_results_resized, Y]
             image = make_image_list(images, normalize=False)
             os.makedirs('./output/images/', exist_ok=True)
@@ -390,8 +414,8 @@ def train_one_epoch(G: 'generator model',
             #print(f'lmks_loss:                  {universal_multiplier*lmks_loss_multiplier*lmks_loss.item()}')
             print(f'L_attr:                     {universal_multiplier*L_attr_multiplier*L_attr.item()}')
             print(f'L_l2_eyes:                  {universal_multiplier*L_l2_eyes_multiplier*L_l2_eyes.item()}')
-            print(f'mirror_loss:                {universal_multiplier*mirror_loss_multiplier*mirror_loss.item()}        (x{mirror_loss_multiplier})')
-            print(f'round_trip_loss:            {universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item()}        (x{round_trip_loss_multiplier})')
+            #print(f'mirror_loss:                {universal_multiplier*mirror_loss_multiplier*mirror_loss.item()}        (x{mirror_loss_multiplier})')
+            #print(f'round_trip_loss:            {universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item()}        (x{round_trip_loss_multiplier})')
             #print(f'emboss_loss:                {universal_multiplier*emboss_loss_multiplier*emboss_loss.item()}')
             #print(f'hsv_loss:                   {universal_multiplier*hsv_loss_multiplier*hsv_loss.item()}')
             #print(f'edge_loss:                  {universal_multiplier*edge_loss_multiplier*edge_loss.item()}')
@@ -553,6 +577,7 @@ if __name__ == "__main__":
     parser.add_argument('--save_interval', default=2500, type=int)
     parser.add_argument('--teacher_fine_tune', default=False, type=bool)
     parser.add_argument('--teacher_inner_crop', default=False, type=bool)
+    parser.add_argument('--teacher_upsample', default=False, type=bool)
     parser.add_argument('--only_attractive', default=False, type=bool)
     parser.add_argument('--normalize_training_images', default=False, type=bool)
     parser.add_argument('--fine_tune_filter', default=None, type=str)
