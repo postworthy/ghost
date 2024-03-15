@@ -267,3 +267,49 @@ class RandomRGBtoBGR:
             img = img[:, :, ::-1]  # This changes RGB to BGR
             img = Image.fromarray(img)
         return img
+
+def masked_color_consistency_loss(batch_images, masks):
+    """
+    Calculate the loss based on the color consistency within each unmasked region of each image.
+    This function works for tensors on both CPU and CUDA devices.
+    
+    Parameters:
+    - batch_images: a batch of images with shape [BATCH_SIZE, 3, 256, 256].
+    - masks: a batch of masks with shape [BATCH_SIZE, 3, 256, 256], where 0 indicates regions to include.
+    
+    Returns:
+    - loss: the average color consistency loss across the batch considering only unmasked regions.
+    """
+    # Convert masks to boolean where true indicates pixels to be excluded
+    masks_bool = masks != 0
+
+    # Inverse the mask for calculating valid (unmasked) pixel regions
+    valid_pixels = ~masks_bool
+
+    # Ensure the inputs and mask are floats for mathematical operations
+    batch_images = batch_images.float()
+    valid_pixels = valid_pixels.float()
+
+    # Calculate the sum and sum of squares of unmasked pixels for each color channel
+    valid_sum = (batch_images * valid_pixels).sum(dim=[2, 3])
+    valid_sq_sum = (batch_images**2 * valid_pixels).sum(dim=[2, 3])
+
+    # Count the number of valid (unmasked) pixels per channel
+    num_valid_pixels = valid_pixels.sum(dim=[2, 3])
+
+    # Avoid division by zero by setting zero valid pixels to one (this will be filtered out by loss anyway)
+    num_valid_pixels = torch.where(num_valid_pixels == 0, torch.ones_like(num_valid_pixels), num_valid_pixels)
+
+    # Calculate the mean for each color channel
+    mean_colors = valid_sum / num_valid_pixels
+
+    # Calculate the variance for each color channel
+    var_colors = (valid_sq_sum / num_valid_pixels) - (mean_colors ** 2)
+
+    # Average the variances across the color channels
+    avg_var_colors = var_colors.mean(dim=1)
+
+    # Compute the final loss as the mean of these averaged variances
+    loss = avg_var_colors.mean()
+
+    return loss
