@@ -215,13 +215,53 @@ python3 train-roundtrip.py --run_name roundtrip_2 --show_step 20 --batch_size 8 
 
 python3 train-self.py --run_name self_trained_1 --show_step 20 --batch_size 8 --teacher_path ./output/saved_models_roundtrip_1/G_latest.pth --pretrained True --G_path ./output/saved_models_roundtrip_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 
+#with multi round loss
+
+python3 train-self.py --run_name self_trained_2 --show_step 20 --batch_size 6 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --D_path ./output/saved_models_test_with_pretrained_upsampled_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-self.py --run_name self_trained_3 --show_step 20 --batch_size 6 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --D_path ./output/saved_models_self_trained_2/D_latest.pth --pretrained True --G_path ./output/saved_models_self_trained_2/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
 
 ######################################
 #train but with upsampled model as starting point (Also removed mirror & roundtrip) (Also added --teacher_upsample)
 
 python3 train.py --run_name test_with_pretrained_upsampled_1 --show_step 20 --batch_size 8 --D_path ./output/saved_models_upsampler_8/D_latest.pth --pretrained True --G_path ./output/saved_models_upsampler_8/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True
 
-python3 train.py --run_name test_with_pretrained_upsampled_2 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True --normalize_training_images True
+python3 train.py --run_name test_with_pretrained_upsampled_2 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_upsampled_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --into_data_path /other_extracted --save_interval 2000 --teacher_upsample True
+python3 train.py --run_name test_with_pretrained_upsampled_3 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_2/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_2/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --into_data_path /other_extracted --save_interval 2000 --teacher_upsample True
+
+python3 train.py --run_name test_with_pretrained_upsampled_4 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_3/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_3/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --into_data_path /other_extracted --save_interval 2000 --teacher_upsample True
+
+#######################################
+#Try with teacher loss minimized
+
+python3 train.py --run_name test_with_pretrained_upsampled_5 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_4/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --into_data_path /other_extracted --save_interval 2000 --teacher_upsample True --teacher_lower_signal True
+
+python3 train.py --run_name test_with_pretrained_upsampled_6 --show_step 20 --batch_size 8 --D_path ./output/saved_models_test_with_pretrained_upsampled_4/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop_dark --into_data_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True --teacher_lower_signal True
+
+#######################################
+#Now with feedback related to multiround loss
+python3 train.py --run_name test_with_pretrained_upsampled_7 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_upsampled_1/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000 --teacher_upsample True
+python3 train.py --run_name test_with_pretrained_upsampled_8 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_upsampled_7/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_7/G_latest.pth --celeb True --dataset_path /frombadges_crop --into_data_path /img_align_celeba_crop --save_interval 5000 --teacher_upsample True
+python3 train.py --run_name test_with_pretrained_upsampled_9 --show_step 20 --batch_size 4 --D_path ./output/saved_models_test_with_pretrained_upsampled_8/D_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_8/G_latest.pth --celeb True --dataset_path /real_faces_128 --into_data_path /img_align_celeba_crop --save_interval 5000 --teacher_upsample True
+
+#######################################
+#Mask Training
+
+python3 train-mask.py --run_name mask_1 --show_step 20 --batch_size 4 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-mask.py --run_name mask_2 --show_step 20 --batch_size 6 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_mask_1/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+
+python3 train-mask.py --run_name mask_3 --show_step 100 --batch_size 6 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_mask_2/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+python3 train-mask.py --run_name mask_4 --show_step 100 --batch_size 3 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_mask_3/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+
+python3 train-mask.py --run_name mask_5 --show_step 100 --batch_size 3 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_mask_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+
+python3 train-mask.py --run_name mask_6 --show_step 100 --batch_size 3 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --pretrained True --G_path ./output/saved_models_mask_5/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+
+#Xt_G into model to get Y
+python3 train-mask.py --run_name mask_6 --show_step 100 --batch_size 3 --teacher_path ./output/saved_models_test_with_pretrained_upsampled_4/G_latest.pth --celeb True --dataset_path /img_align_celeba_crop --save_interval 10000
+
+#segment anything
+python3 train-mask.py --run_name mask_7 --show_step 20 --batch_size 14 --celeb True --dataset_path /img_align_celeba_crop --save_interval 2000
+python3 train-mask.py --run_name mask_8 --show_step 20 --batch_size 14 --celeb True --pretrained True --G_path ./output/saved_models_mask_7/G_latest.pth --dataset_path /img_align_celeba_crop --save_interval 2000
 
 
 #####
@@ -244,3 +284,5 @@ After running around 10-12 epochs at batch_size 8 what happens if we modify the 
 * It is likely that the reason the upsampler was seeing cases of zeroing out when normalizing data is because of NaNs returning, in this case you could replace NaN with 0.0
 * Additional runs through train.py with --teacher_upsample results in color alignment as well as improved results
 * saved_models_test_with_pretrained_upsampled_1 is now the best model
+* saved_models_test_with_pretrained_upsampled_9 is now the best model
+* for masking the segment anything approach works perfectly, saved_models_mask_7 & saved_models_mask_8 are the current best mask
