@@ -200,6 +200,9 @@ def train_one_epoch(G: 'generator model',
         #Y, Xt_attr = G(Xt, embeds)
         Y, Xt_attr = G(Xt, netarc_embeds)
 
+        Y2, Xt_attr2 = G(Y, netarc_embeds)
+        multi_round_loss = F.mse_loss(Y2, Y)
+
         #The model should handle inputs that are simply mirrored identically
         #Xt_mirrored = torch.flip(Xt, dims=[3])
         #Y_mirrored, Xt_attr_mirrored = G(Xt_mirrored, netarc_embeds)
@@ -312,6 +315,7 @@ def train_one_epoch(G: 'generator model',
         L_attr_multiplier = 3.0
         L_adv_multiplier = 0.5
         teacher_loss_multiplier = 30.0 #25.0 #20.0
+        multi_round_loss_multiplier = teacher_loss_multiplier * 100.0
 
         #round_trip_loss_multiplier = 1.0
         #while universal_multiplier*round_trip_loss_multiplier*round_trip_loss.item() < 100:
@@ -338,6 +342,12 @@ def train_one_epoch(G: 'generator model',
             netarc_embeds_loss_from_hq = torch.tensor(0.0).to(device)
             L_l2_eyes = torch.tensor(0.0).to(device)
 
+
+        if args.teacher_lower_signal == True:
+            netarc_embeds_loss_from_hq_multiplier = .1
+            teacher_loss_multiplier = .5
+            multi_round_loss_multiplier = teacher_loss_multiplier * 100.0
+
         if args.teacher_fine_tune == False:   
             if D:
                 total_loss = universal_multiplier * ( 
@@ -345,6 +355,7 @@ def train_one_epoch(G: 'generator model',
                                 netarc_embeds_loss_from_hq_multiplier * netarc_embeds_loss_from_hq +
                                 L_attr_multiplier * L_attr + 
                                 teacher_loss_multiplier * teacher_loss +
+                                multi_round_loss_multiplier * multi_round_loss +
                                 L_adv_multiplier * L_adv  + 
                                 L_l2_eyes_multiplier * L_l2_eyes 
                                 #+ mirror_loss_multiplier * mirror_loss
@@ -356,6 +367,7 @@ def train_one_epoch(G: 'generator model',
                                 netarc_embeds_loss_from_hq_multiplier * netarc_embeds_loss_from_hq +
                                 L_attr_multiplier * L_attr + 
                                 teacher_loss_multiplier * teacher_loss +
+                                multi_round_loss_multiplier * multi_round_loss +
                                 L_l2_eyes_multiplier * L_l2_eyes 
                                 #+ mirror_loss_multiplier * mirror_loss 
                                 #+ round_trip_loss_multiplier * round_trip_loss
@@ -363,6 +375,8 @@ def train_one_epoch(G: 'generator model',
         else:
             teacher_loss_multiplier = teacher_loss_multiplier * 1000
             total_loss = teacher_loss_multiplier * teacher_loss
+
+        
 
         # Backward and optimize
         opt_G.zero_grad()
@@ -401,7 +415,7 @@ def train_one_epoch(G: 'generator model',
                 high_quality_results_resized = high_quality_results_combined
             else:
                 high_quality_results_resized = F.interpolate(high_quality_results_combined, size=(256, 256), mode='bicubic', align_corners=False)
-            images = [Xs, Xt, high_quality_results_resized, Y]
+            images = [Xs, Xt, high_quality_results_resized, Y, Y2]
             image = make_image_list(images, normalize=False)
             os.makedirs('./output/images/', exist_ok=True)
             cv2.imwrite(f'./output/images/generated_image_{args.run_name}_{str(epoch)}_{iteration:06}.jpg', image[:,:,::-1])
@@ -419,6 +433,7 @@ def train_one_epoch(G: 'generator model',
             #print(f'emboss_loss:                {universal_multiplier*emboss_loss_multiplier*emboss_loss.item()}')
             #print(f'hsv_loss:                   {universal_multiplier*hsv_loss_multiplier*hsv_loss.item()}')
             #print(f'edge_loss:                  {universal_multiplier*edge_loss_multiplier*edge_loss.item()}')
+            print(f'multi_round_loss:           {universal_multiplier*multi_round_loss_multiplier*multi_round_loss.item()}        (x{multi_round_loss_multiplier})')
             print(f'teacher_loss:               {universal_multiplier*teacher_loss_multiplier*teacher_loss.item()}')
             #print(f'color_loss:                 {universal_multiplier*color_loss_multiplier*color_loss.item()}')
             if D:
@@ -578,6 +593,7 @@ if __name__ == "__main__":
     parser.add_argument('--teacher_fine_tune', default=False, type=bool)
     parser.add_argument('--teacher_inner_crop', default=False, type=bool)
     parser.add_argument('--teacher_upsample', default=False, type=bool)
+    parser.add_argument('--teacher_lower_signal', default=False, type=bool)
     parser.add_argument('--only_attractive', default=False, type=bool)
     parser.add_argument('--normalize_training_images', default=False, type=bool)
     parser.add_argument('--fine_tune_filter', default=None, type=str)
