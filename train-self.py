@@ -88,7 +88,13 @@ def train_one_epoch(G: 'generator model',
             print(Xt.shape)
             print(netarc_embeds.shape)
         
+        #Multi round loss
         Y, Xt_attr = G(Xt, netarc_embeds)
+        Y2, Xt_attr2 = G(Y, netarc_embeds)
+        with torch.no_grad():
+            Y2_resized_112 = F.interpolate(Y2, [112, 112], mode='bilinear', align_corners=False)
+            ZY2 = netArc(Y2_resized_112)
+        netarc_embeds_loss_from_Y2 = (1 - torch.cosine_similarity(netarc_embeds, ZY2, dim=1)).mean()
 
         tY, _ = teacher(Xt.half(), netarc_embeds.half())
         tY = tY.float()
@@ -118,10 +124,12 @@ def train_one_epoch(G: 'generator model',
 
         netarc_embeds_loss =(1 - torch.cosine_similarity(tZY, ZY, dim=1)).mean()
         teacher_loss = F.mse_loss(tY, Y)
+        multi_round_loss = F.mse_loss(Y2, Y)
 
         L_attr_multiplier = 3.5
         L_adv_multiplier = 1.5
         teacher_loss_multiplier = 10000.0
+        multi_round_loss_multiplier = teacher_loss_multiplier * 100.0
 
         netarc_embeds_loss_multiplier = 3.5
         #while universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss.item() < 200:
@@ -133,14 +141,20 @@ def train_one_epoch(G: 'generator model',
 
         if D:
             total_loss = universal_multiplier * (
-                #netarc_embeds_loss_multiplier * netarc_embeds_loss + 
-                teacher_loss_multiplier * teacher_loss# + 
-                #L_attr_multiplier * L_attr
+                netarc_embeds_loss_multiplier * netarc_embeds_loss + 
+                netarc_embeds_loss_multiplier * netarc_embeds_loss_from_Y2 + 
+                netarc_embeds_loss_multiplier * netarc_embeds_loss_from_hq + 
+                multi_round_loss_multiplier * multi_round_loss +
+                teacher_loss_multiplier * teacher_loss + 
+                L_attr_multiplier * L_attr
                 + L_adv_multiplier * L_adv
                 )
         else:
             total_loss = universal_multiplier * (
                 netarc_embeds_loss_multiplier * netarc_embeds_loss + 
+                netarc_embeds_loss_multiplier * netarc_embeds_loss_from_Y2 + 
+                netarc_embeds_loss_multiplier * netarc_embeds_loss_from_hq + 
+                multi_round_loss_multiplier * multi_round_loss +
                 teacher_loss_multiplier * teacher_loss + 
                 L_attr_multiplier * L_attr)
 
@@ -172,7 +186,7 @@ def train_one_epoch(G: 'generator model',
         batch_time = time.time() - start_time
 
         if iteration % args.show_step == 0:
-            images = [Xs, Xt, tY, Y]
+            images = [Xs, Xt, tY, Y, Y2]
             image = make_image_list(images, normalize=False)
             os.makedirs('./output/images/', exist_ok=True)
             cv2.imwrite(f'./output/images/generated_image_{args.run_name}_{str(epoch)}_{iteration:06}.jpg', image[:,:,::-1])
@@ -180,7 +194,10 @@ def train_one_epoch(G: 'generator model',
         if iteration % 10 == 0:
             print(f'epoch:                      {epoch}    {iteration} / {len(dataloader)}')
             print(f'netarc_embeds_loss:         {universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss.item()}      (x{netarc_embeds_loss_multiplier})')
+            print(f'netarc_embeds_loss_from_hq: {universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss_from_hq.item()}      (x{netarc_embeds_loss_multiplier})')
+            print(f'netarc_embeds_loss_from_Y2: {universal_multiplier*netarc_embeds_loss_multiplier*netarc_embeds_loss_from_Y2.item()}      (x{netarc_embeds_loss_multiplier})')
             print(f'L_attr:                     {universal_multiplier*L_attr_multiplier*L_attr.item()}')
+            print(f'multi_round_loss:           {universal_multiplier*multi_round_loss_multiplier*multi_round_loss.item()}        (x{multi_round_loss_multiplier})')
             print(f'teacher_loss:               {universal_multiplier*teacher_loss_multiplier*teacher_loss.item()}        (x{teacher_loss_multiplier})')
             if D:
                 print(f'L_adv:                      {universal_multiplier*L_adv_multiplier*L_adv.item()}')
