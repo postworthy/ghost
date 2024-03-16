@@ -67,6 +67,11 @@ RUN ln -s /root/.superres/parsing_parsenet.pth /app/ghost/gfpgan/weights/parsing
 RUN cd GFPGAN && git pull
 #END GFPGAN
 
+#START SEGMENT ANYTHING
+RUN pip install git+https://github.com/facebookresearch/segment-anything.git
+RUN ln -s /root/SAM/sam_vit_h_4b8939.pth /app/sam_vit_h_4b8939.pth
+#END SEGMENT ANYTHING
+
 #ADD ./export-onnx.py /app/ghost/
 ADD ./models/ ./models/
 ADD ./network/ ./network/
