@@ -4,3 +4,4 @@
 __pycache__
 output/*
 docker_models_cache
+img_align_celeba
