@@ -1,4 +1,5 @@
-from nvidia/cuda:11.4.3-cudnn8-devel-ubuntu20.04
+#from nvidia/cuda:11.4.3-cudnn8-devel-ubuntu20.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu20.04
 
 WORKDIR /app
 
@@ -6,6 +7,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update 
 RUN apt-get install -y python3 pip python3-tk wget unzip git
 RUN apt-get install -y libgl1-mesa-glx libgtk-3-0
+
+#Hack in 2024 to ensure we can still build
+RUN pip3 install networkx==3.1
 
 RUN pip3 install --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
@@ -22,7 +26,7 @@ RUN git submodule init
 RUN mkdir -p /root/.insightface/models/
 RUN pip3 install -U insightface
 #RUN wget -O /root/.insightface/models/inswapper_128.onnx https://huggingface.co/deepinsight/inswapper/resolve/main/inswapper_128.onnx
-RUN wget -O /root/.insightface/models/inswapper_128.onnx https://huggingface.co/Devia/G/resolve/main/inswapper_128.onnx
+#RUN wget -O /root/.insightface/models/inswapper_128.onnx https://huggingface.co/Devia/G/resolve/main/inswapper_128.onnx
 RUN pip3 install onnxruntime-gpu
 RUN python3 -c "import torch; import insightface; import onnxruntime; PROVIDERS = onnxruntime.get_available_providers(); [PROVIDERS.remove(provider) for provider in PROVIDERS if provider == 'TensorrtExecutionProvider']; insightface.app.FaceAnalysis(name='buffalo_l', providers=PROVIDERS)" || true
 #END insightface
@@ -30,7 +34,7 @@ RUN python3 -c "import torch; import insightface; import onnxruntime; PROVIDERS 
 #ADD ./requirements.txt /app/ghost/
 #RUN pip3 install -r requirements.txt
 
-RUN pip3 install numpy
+RUN pip3 install numpy==1.24.4
 RUN pip3 install opencv-python
 RUN pip3 install onnxruntime-gpu
 RUN pip3 install onnx
@@ -71,6 +75,9 @@ RUN cd GFPGAN && git pull
 RUN pip install git+https://github.com/facebookresearch/segment-anything.git
 RUN ln -s /root/SAM/sam_vit_h_4b8939.pth /app/sam_vit_h_4b8939.pth
 #END SEGMENT ANYTHING
+
+#Hack to Fix ModuleNotFoundError: No module named 'torchvision.transforms.functional_tensor' (https://github.com/AUTOMATIC1111/stable-diffusion-webui/issues/13985)
+RUN sed -i 's/from torchvision.transforms.functional_tensor import rgb_to_grayscale/from torchvision.transforms.functional import rgb_to_grayscale/' /usr/local/lib/python3.8/dist-packages/basicsr/data/degradations.py
 
 #ADD ./export-onnx.py /app/ghost/
 ADD ./models/ ./models/
